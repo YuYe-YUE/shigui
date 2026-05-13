@@ -22,15 +22,21 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "assets/icons/tab-home.svg",
+        "selectedIconPath": "assets/icons/tab-home.svg"
       },
       {
         "pagePath": "pages/publish/publish",
-        "text": "发布"
+        "text": "发布",
+        "iconPath": "assets/icons/tab-publish.svg",
+        "selectedIconPath": "assets/icons/tab-publish.svg"
       },
       {
         "pagePath": "pages/mine/mine",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "assets/icons/tab-mine.svg",
+        "selectedIconPath": "assets/icons/tab-mine.svg"
       }
     ]
   }
