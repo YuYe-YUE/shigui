@@ -142,13 +142,13 @@ git -C /Users/cyrene/Dev/shigui commit -m "feat: add AuditRecord entity, mapper,
 ### Task 2: 管理端审核 API（TDD）
 
 **Files:**
-- Create: `backend/src/test/java/com/shigui/service/AdminPostServiceTest.java`
+- Create: `backend/src/test/java/com/shigui/service/AuditRecordServiceTest.java`
 - Modify: `backend/src/main/java/com/shigui/controller/AdminController.java`
 - Modify: `backend/src/test/java/com/shigui/controller/AdminControllerTest.java`
 
 - [ ] **Step 1: 编写 Service 测试**
 
-创建 `backend/src/test/java/com/shigui/service/AdminPostServiceTest.java`：
+创建 `backend/src/test/java/com/shigui/service/AuditRecordServiceTest.java`：
 
 ```java
 package com.shigui.service;
@@ -223,6 +223,16 @@ private LostFoundPostService lostFoundPostService;
 private AuditRecordService auditRecordService;
 ```
 
+新增 mock 字段和测试方法。替换旧的 `getAdminToken`：
+
+```java
+@MockitoBean
+private LostFoundPostService lostFoundPostService;
+
+@MockitoBean
+private AuditRecordService auditRecordService;
+```
+
 新增测试方法：
 ```java
 @Test
@@ -237,8 +247,21 @@ void listPosts_loggedIn_returns200() throws Exception {
     String token = getAdminToken();
     when(lostFoundPostService.page(any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10));
 
-    mockMvc.perform(get("/api/admin/posts")
-                    .header("satoken", token))
+    mockMvc.perform(get("/api/admin/posts").header("satoken", token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200));
+}
+
+@Test
+void postDetail_loggedIn_returns200() throws Exception {
+    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
+    String token = getAdminToken();
+    LostFoundPost post = new LostFoundPost();
+    post.setId(1L);
+    post.setTitle("test");
+    when(lostFoundPostService.getById(1L)).thenReturn(post);
+
+    mockMvc.perform(get("/api/admin/posts/1").header("satoken", token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 }
@@ -252,10 +275,22 @@ void approvePost_loggedIn_returns200() throws Exception {
     post.setStatus("PENDING_AUDIT");
     when(lostFoundPostService.getById(1L)).thenReturn(post);
 
-    mockMvc.perform(post("/api/admin/posts/1/approve")
-                    .header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+    mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
+}
+
+@Test
+void approvePost_alreadyDeleted_returns400() throws Exception {
+    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
+    String token = getAdminToken();
+    LostFoundPost post = new LostFoundPost();
+    post.setId(1L);
+    post.setStatus("PENDING_AUDIT");
+    post.setDeleted(1);
+    when(lostFoundPostService.getById(1L)).thenReturn(post);
+
+    mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
 }
 
 @Test
@@ -268,18 +303,29 @@ void deletePost_loggedIn_returns200() throws Exception {
 
     mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("satoken", token)
-                    .content("{\"reason\":\"违规\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+                    .header("satoken", token).content("{\"reason\":\"违规\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
+}
+
+@Test
+void deletePost_noReason_returns400() throws Exception {
+    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
+    String token = getAdminToken();
+    LostFoundPost post = new LostFoundPost();
+    post.setId(1L);
+    when(lostFoundPostService.getById(1L)).thenReturn(post);
+
+    mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("satoken", token).content("{\"reason\":\"\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
 }
 
 private String getAdminToken() throws Exception {
     String body = mockMvc.perform(post("/api/admin/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     return body.replaceAll(".*\\\"data\\\":\\\"([^\\\"]+)\\\".*", "$1");
 }
 ```
@@ -300,20 +346,23 @@ cd /Users/cyrene/Dev/shigui/backend && ./mvnw test -Dtest=AdminControllerTest
 
 - [ ] **Step 5: 实现 Controller 审核端点**
 
-修改 `AdminController.java`。注入新依赖并添加方法：
+修改 `AdminController.java`。一次性注入所有依赖（Task 3 不再动构造函数）：
 
 构造函数改为：
 ```java
 private final AdminUserService adminUserService;
 private final LostFoundPostService lostFoundPostService;
 private final AuditRecordService auditRecordService;
+private final AppUserService appUserService;
 
 public AdminController(AdminUserService adminUserService,
                        LostFoundPostService lostFoundPostService,
-                       AuditRecordService auditRecordService) {
+                       AuditRecordService auditRecordService,
+                       AppUserService appUserService) {
     this.adminUserService = adminUserService;
     this.lostFoundPostService = lostFoundPostService;
     this.auditRecordService = auditRecordService;
+    this.appUserService = appUserService;
 }
 ```
 
@@ -323,13 +372,15 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.LostFoundPostService;
 import com.shigui.service.AuditRecordService;
+import com.shigui.service.AppUserService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 ```
 
 新增方法：
 ```java
 /**
- * 管理员查看全量单据，支持按状态筛选。
+ * 管理员查看全量单据列表。
+ * 列表不直接返回 privateFeature 字段——管理员查看详情时再调详情接口。
  */
 @GetMapping("/posts")
 public Result<Page<LostFoundPost>> listPosts(
@@ -340,7 +391,22 @@ public Result<Page<LostFoundPost>> listPosts(
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
     wrapper.eq(status != null && !status.isEmpty(), LostFoundPost::getStatus, status);
     wrapper.orderByDesc(LostFoundPost::getPublishedAt);
-    return Result.ok(lostFoundPostService.page(new Page<>(page, size), wrapper));
+    Page<LostFoundPost> result = lostFoundPostService.page(new Page<>(page, size), wrapper);
+    // 列表脱敏：去掉 privateFeature
+    result.getRecords().forEach(p -> p.setPrivateFeature(null));
+    return Result.ok(result);
+}
+
+/**
+ * 管理员查看单据详情（含 privateFeature，用于审核决策）。
+ */
+@GetMapping("/posts/{id}")
+public Result<LostFoundPost> postDetail(@PathVariable Long id) {
+    LostFoundPost post = lostFoundPostService.getById(id);
+    if (post == null) {
+        return Result.fail(404, "单据不存在");
+    }
+    return Result.ok(post);
 }
 
 /**
@@ -352,6 +418,9 @@ public Result<Void> approvePost(@PathVariable Long id) {
     LostFoundPost post = lostFoundPostService.getById(id);
     if (post == null) {
         return Result.fail(404, "单据不存在");
+    }
+    if (post.getDeleted() != null && post.getDeleted() == 1) {
+        return Result.fail(400, "单据已被删除");
     }
     if (!"PENDING_AUDIT".equals(post.getStatus())) {
         return Result.fail(400, "只能审核待审核状态的单据");
@@ -372,7 +441,13 @@ public Result<Void> deletePost(@PathVariable Long id, @RequestBody Map<String, S
     if (post == null) {
         return Result.fail(404, "单据不存在");
     }
+    if (post.getDeleted() != null && post.getDeleted() == 1) {
+        return Result.fail(400, "单据已被删除");
+    }
     String reason = body.getOrDefault("reason", "");
+    if (reason.isBlank()) {
+        return Result.fail(400, "删除原因不能为空");
+    }
     post.setDeleted(1);
     lostFoundPostService.updateById(post);
     auditRecordService.logDelete(adminId, id, reason);
@@ -380,18 +455,20 @@ public Result<Void> deletePost(@PathVariable Long id, @RequestBody Map<String, S
 }
 ```
 
+注意：`@GetMapping("/posts/{id}")` 和 `@GetMapping("/posts")` 不冲突。但 `@DeleteMapping("/posts/{id}")` 路径正确。
+
 - [ ] **Step 6: 运行控制器测试确认通过**
 
 ```bash
 cd /Users/cyrene/Dev/shigui/backend && ./mvnw test -Dtest=AdminControllerTest
 ```
-预期：PASS — 6 tests（原 2 + 新 4）。
+预期：PASS — 9 tests（原 2 + 新 7）。
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/cyrene/Dev/shigui add backend/src/main/java/com/shigui/controller/AdminController.java backend/src/test/java/com/shigui/controller/AdminControllerTest.java backend/src/test/java/com/shigui/service/AdminPostServiceTest.java
-git -C /Users/cyrene/Dev/shigui commit -m "feat: admin post audit APIs (list, approve, delete)"
+git -C /Users/cyrene/Dev/shigui add backend/src/main/java/com/shigui/controller/AdminController.java backend/src/test/java/com/shigui/controller/AdminControllerTest.java backend/src/test/java/com/shigui/service/AuditRecordServiceTest.java
+git -C /Users/cyrene/Dev/shigui commit -m "feat: admin post audit APIs (list, detail, approve, delete)"
 ```
 
 ---
@@ -433,14 +510,7 @@ public void unbanUser(Long userId) {
 
 - [ ] **Step 3: AdminController 新增用户管理端点**
 
-在 `AdminController` 中追加：
-
-```java
-import com.shigui.entity.AppUser;
-import com.shigui.service.AppUserService;
-```
-
-修改构造函数注入 `AppUserService`，并追加方法：
+构造函数已在 Task 2 注入全部 4 个依赖，此处只需追加方法：
 
 ```java
 /**
@@ -525,13 +595,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 ```bash
 cd /Users/cyrene/Dev/shigui/backend && ./mvnw test
 ```
-预期：41 tests PASS（34 + 2 AdminPostService + 5 新 Controller tests）。
+预期：46 tests PASS（34 + 2 AuditRecordService + 7 新审核测试 + 3 新用户管理测试）。
 
-- [ ] **Step 6: 更新 SaToken 配置确保 /api/admin/** 受保护**
-
-确认 `SaTokenConfig.java` 中 `/api/admin/login` 在排除列表，其他 `/api/admin/**` 都拦截。当前配置已正确。
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git -C /Users/cyrene/Dev/shigui add backend/
@@ -583,9 +649,20 @@ async function approve(id: number) {
   loadPosts()
 }
 
+async function viewDetail(id: number) {
+  const res = await api.get(`/api/admin/posts/${id}`)
+  const post = res.data.data
+  ElMessageBox.alert(
+    `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}`,
+    post.title,
+    { confirmButtonText: '关闭' }
+  )
+}
+
 async function deletePost(id: number) {
   try {
-    const { value: reason } = await ElMessageBox.prompt('请填写删除原因', '删除单据', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+    await ElMessageBox.confirm('确认删除该单据？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+    const { value: reason } = await ElMessageBox.prompt('请填写删除原因', '删除原因', { confirmButtonText: '确认删除', cancelButtonText: '取消', inputType: 'textarea' })
     await api.delete(`/api/admin/posts/${id}`, { data: { reason } })
     ElMessage.success('已删除')
     loadPosts()
@@ -615,8 +692,9 @@ async function deletePost(id: number) {
           <el-tag v-else size="small">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="260">
         <template #default="{ row }">
+          <el-button size="small" @click="viewDetail(row.id)">详情</el-button>
           <el-button v-if="row.status === 'PENDING_AUDIT'" size="small" type="success" @click="approve(row.id)">通过</el-button>
           <el-button size="small" type="danger" @click="deletePost(row.id)">删除</el-button>
         </template>
@@ -761,7 +839,7 @@ git -C /Users/cyrene/Dev/shigui commit -m "feat: admin-web user management page"
 ```bash
 cd /Users/cyrene/Dev/shigui/backend && ./mvnw test
 ```
-预期：41 tests PASS。
+预期：46 tests PASS。
 
 - [ ] **Step 2: 管理端构建**
 
