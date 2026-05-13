@@ -23,20 +23,20 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "assets/icons/tab-home.svg",
-        "selectedIconPath": "assets/icons/tab-home.svg"
+        "iconPath": "assets/icons/tab-home.png",
+        "selectedIconPath": "assets/icons/tab-home.png"
       },
       {
         "pagePath": "pages/publish/publish",
         "text": "发布",
-        "iconPath": "assets/icons/tab-publish.svg",
-        "selectedIconPath": "assets/icons/tab-publish.svg"
+        "iconPath": "assets/icons/tab-publish.png",
+        "selectedIconPath": "assets/icons/tab-publish.png"
       },
       {
         "pagePath": "pages/mine/mine",
         "text": "我的",
-        "iconPath": "assets/icons/tab-mine.svg",
-        "selectedIconPath": "assets/icons/tab-mine.svg"
+        "iconPath": "assets/icons/tab-mine.png",
+        "selectedIconPath": "assets/icons/tab-mine.png"
       }
     ]
   }
