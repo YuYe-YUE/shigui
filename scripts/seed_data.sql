@@ -4,7 +4,7 @@ USE shi_gui;
 -- 哈希格式: salt:sha256(salt + password)
 -- 生成方法见 AdminUserServiceImpl.verifyPassword
 INSERT INTO admin_user (username, password_hash) VALUES
-('admin', 'placeholder_run_Task11_Step2_to_generate');
+('admin', '1Kgtp+nNHV4Nignq9aOyjw==:42cf36653d882acf983640003bf6ab9439ae1bb8ac7653970641d43e967b86fe');
 
 -- 测试用户
 INSERT INTO app_user (openid, nickname, role) VALUES
