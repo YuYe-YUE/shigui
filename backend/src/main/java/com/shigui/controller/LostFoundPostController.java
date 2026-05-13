@@ -50,6 +50,14 @@ public class LostFoundPostController {
         return Result.ok(lostFoundPostService.listMine(userId, page, size, postType));
     }
 
+    /**
+     * 地图点位（公开）。S7 完整实现，S3 返回空数组占位避免 500。
+     */
+    @GetMapping("/map")
+    public Result<java.util.List<Object>> mapPoints() {
+        return Result.ok(java.util.List.of());
+    }
+
     @GetMapping("/{id}")
     public Result<PostResponse> detail(@PathVariable Long id) {
         return Result.ok(lostFoundPostService.getDetail(id));
