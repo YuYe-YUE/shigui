@@ -1,5 +1,7 @@
 package com.shigui.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shigui.dto.CreatePostRequest;
 import com.shigui.dto.PostResponse;
@@ -11,6 +13,7 @@ import com.shigui.service.LostFoundPostService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, LostFoundPost> implements LostFoundPostService {
@@ -58,6 +61,46 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
             throw new IllegalArgumentException("单据不存在: " + postId);
         }
         return toResponse(post);
+    }
+
+    @Override
+    public Page<PostResponse> listPublic(int page, int size, String postType,
+            String itemCategory, String campusArea, String keyword) {
+        LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(LostFoundPost::getStatus, "MATCHING");
+        wrapper.eq(LostFoundPost::getDeleted, 0);
+        wrapper.eq(postType != null && !postType.isEmpty(), LostFoundPost::getPostType, postType);
+        wrapper.eq(itemCategory != null && !itemCategory.isEmpty(), LostFoundPost::getItemCategory, itemCategory);
+        wrapper.eq(campusArea != null && !campusArea.isEmpty(), LostFoundPost::getCampusArea, campusArea);
+        wrapper.like(keyword != null && !keyword.isEmpty(), LostFoundPost::getTitle, keyword);
+        wrapper.orderByDesc(LostFoundPost::getPublishedAt);
+
+        Page<LostFoundPost> entityPage = page(new Page<>(page, size), wrapper);
+        List<PostResponse> responses = entityPage.getRecords().stream()
+                .map(this::toResponse).toList();
+
+        Page<PostResponse> result = new Page<>(page, size);
+        result.setRecords(responses);
+        result.setTotal(entityPage.getTotal());
+        return result;
+    }
+
+    @Override
+    public Page<PostResponse> listMine(Long userId, int page, int size, String postType) {
+        LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(LostFoundPost::getUserId, userId);
+        wrapper.eq(LostFoundPost::getDeleted, 0);
+        wrapper.eq(postType != null && !postType.isEmpty(), LostFoundPost::getPostType, postType);
+        wrapper.orderByDesc(LostFoundPost::getPublishedAt);
+
+        Page<LostFoundPost> entityPage = page(new Page<>(page, size), wrapper);
+        List<PostResponse> responses = entityPage.getRecords().stream()
+                .map(this::toResponse).toList();
+
+        Page<PostResponse> result = new Page<>(page, size);
+        result.setRecords(responses);
+        result.setTotal(entityPage.getTotal());
+        return result;
     }
 
     private void validate(CreatePostRequest request) {

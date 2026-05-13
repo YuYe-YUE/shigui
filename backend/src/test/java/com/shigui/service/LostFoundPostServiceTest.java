@@ -3,6 +3,7 @@ package com.shigui.service;
 import com.shigui.dto.CreatePostRequest;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.mapper.LostFoundPostMapper;
 import com.shigui.service.impl.LostFoundPostServiceImpl;
@@ -141,6 +142,73 @@ class LostFoundPostServiceTest {
         assertThatThrownBy(() -> lostFoundPostService.getDetail(404L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("单据不存在");
+    }
+
+    @Test
+    void listPublic_onlyReturnsMatchingNotDeleted() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost post = new LostFoundPost();
+                    post.setId(1L);
+                    post.setStatus("MATCHING");
+                    post.setTitle("test");
+                    page.setRecords(java.util.List.of(post));
+                    page.setTotal(1);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
+        assertThat(result.getRecords()).hasSize(1);
+        assertThat(result.getRecords().get(0).getStatus()).isEqualTo("MATCHING");
+    }
+
+    @Test
+    void listPublic_keywordFilter_matchesTitle() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    page.setRecords(java.util.List.of());
+                    page.setTotal(0);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, "校园卡");
+        assertThat(result.getRecords()).isEmpty();
+    }
+
+    @Test
+    void listMine_onlyReturnsCurrentUser() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost post = new LostFoundPost();
+                    post.setId(1L);
+                    post.setUserId(1L);
+                    post.setStatus("PENDING_AUDIT");
+                    post.setTitle("mine");
+                    page.setRecords(java.util.List.of(post));
+                    page.setTotal(1);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listMine(1L, 1, 10, null);
+        assertThat(result.getRecords()).hasSize(1);
+        assertThat(result.getRecords().get(0).getStatus()).isEqualTo("PENDING_AUDIT");
+    }
+
+    @Test
+    void listMine_excludesDeleted() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    page.setRecords(java.util.List.of());
+                    page.setTotal(0);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listMine(1L, 1, 10, null);
+        assertThat(result.getRecords()).isEmpty();
     }
 
     private void injectBaseMapper(LostFoundPostServiceImpl impl) {
