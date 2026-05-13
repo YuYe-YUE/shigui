@@ -34,38 +34,16 @@ Page({
   },
 
   /**
-   * 发起认领申请 - 弹窗要求用户填写物品的非公开特征以验证失主身份
+   * 发起认领申请 - 功能开发中
    */
   applyClaim() {
-    wx.showModal({
-      title: '认领申请',
-      editable: true,
-      placeholderText: '请填写物品的非公开特征以验证身份',
-      success: (res) => {
-        if (res.confirm) {
-          wx.request({
-            url: `${app.globalData.baseUrl}/api/claims`,
-            method: 'POST',
-            header: { satoken: app.globalData.token },
-            data: {
-              postId: this.data.id,
-              privateFeatureAnswer: res.content
-            },
-            success: (resp) => {
-              if (resp.data.code === 200) {
-                wx.showToast({ title: '申请已提交', icon: 'success' })
-              }
-            }
-          })
-        }
-      }
-    })
+    wx.showToast({ title: '功能开发中', icon: 'none' })
   },
 
   /**
-   * 打开匿名聊天会话 - 跳转到与该帖子关联的聊天页面
+   * 打开匿名聊天会话 - 功能开发中
    */
   openChat() {
-    wx.navigateTo({ url: `/pages/chat/chat?postId=${this.data.id}` })
+    wx.showToast({ title: '功能开发中', icon: 'none' })
   }
 })
