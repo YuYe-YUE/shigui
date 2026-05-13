@@ -1,0 +1,47 @@
+.page {
+  min-height: 100vh;
+  padding: 80rpx 40rpx;
+  background: var(--bg-color);
+  box-sizing: border-box;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.subtitle {
+  margin-top: 16rpx;
+  margin-bottom: 48rpx;
+  color: var(--text-second);
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.type-card {
+  padding: 44rpx 36rpx;
+  margin-bottom: 28rpx;
+  border-radius: 24rpx;
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.type-card.lost {
+  border-left: 12rpx solid var(--lost-color);
+}
+
+.type-card.found {
+  border-left: 12rpx solid var(--found-color);
+}
+
+.type-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.type-desc {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--text-second);
+}

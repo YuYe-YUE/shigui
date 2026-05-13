@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="title">你想发布什么？</view>
+  <view class="subtitle">选择类型后填写物品信息，提交后等待管理员审核。</view>
+
+  <view class="type-card lost" data-type="LOST" bindtap="chooseType">
+    <view class="type-title">我丢了东西</view>
+    <view class="type-desc">发布寻物启事，让同学帮你找回。</view>
+  </view>
+
+  <view class="type-card found" data-type="FOUND" bindtap="chooseType">
+    <view class="type-title">我捡到东西</view>
+    <view class="type-desc">发布招领信息，等待失主认领。</view>
+  </view>
+</view>
