@@ -1,0 +1,20 @@
+page {
+  --primary-color: #2E7D32;
+  --primary-light: #E8F5E9;
+  --lost-color: #FF9800;
+  --lost-light: #FFF3E0;
+  --found-color: #4CAF50;
+  --found-light: #E8F5E9;
+  --bg-color: #F8F9FA;
+  --text-main: #1A1A1A;
+  --text-second: #666666;
+  --text-light: #999999;
+  --white: #FFFFFF;
+  --shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --border-radius: 16rpx;
+
+  font-size: 28rpx;
+  color: var(--text-main);
+  background: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}

@@ -1,0 +1,12 @@
+{
+  "description": "拾归 - 校园失物招领",
+  "appid": "wx58ca83eb30d907e7",
+  "projectname": "拾归",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  }
+}

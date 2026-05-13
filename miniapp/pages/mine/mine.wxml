@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="header-section">
+    <view class="user-card">
+      <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '拾'}}</view>
+      <view class="user-info" wx:if="{{userInfo}}">
+        <view class="name">{{userInfo.nickname}}</view>
+        <view class="tag">校园认证用户</view>
+      </view>
+      <view class="user-info" wx:else>
+        <view class="name">未登录</view>
+        <view class="tag">点击登录体验完整功能</view>
+      </view>
+      <view class="login-action" wx:if="{{!userInfo}}">
+        <button class="btn-login" bindtap="wxLogin">微信一键登录</button>
+      </view>
+    </view>
+  </view>
+</view>
