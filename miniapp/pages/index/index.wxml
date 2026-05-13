@@ -1,4 +1,47 @@
-<!-- S1 首页占位页，后续会替换为失物/招领列表。 -->
-<view class="container" style="display:flex;align-items:center;justify-content:center;height:100vh">
-  <text style="font-size:36rpx;color:var(--text-second)">首页 — 即将上线</text>
+<view class="container">
+  <view class="sticky-header">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/assets/icons/search.svg" />
+        <input class="search-input" value="{{keyword}}" placeholder="搜索失物/招领..." placeholder-class="search-placeholder" bindinput="onSearchInput" bindconfirm="onSearchConfirm" confirm-type="search" />
+      </view>
+      <view class="map-icon-btn" bindtap="goMap">
+        <image class="btn-icon" src="/assets/icons/map-pin.svg" />
+      </view>
+    </view>
+
+    <view class="filter-row">
+      <view class="mini-capsule">
+        <view class="capsule-slider pos-{{activeTab}}"></view>
+        <view class="capsule-item {{activeTab === 'lost' ? 'active' : ''}}" data-tab="lost" bindtap="switchTab">寻</view>
+        <view class="capsule-item {{activeTab === 'found' ? 'active' : ''}}" data-tab="found" bindtap="switchTab">招</view>
+      </view>
+
+      <view class="divider"></view>
+
+      <scroll-view class="category-scroll" scroll-x>
+        <view class="category-track">
+          <view class="category-tag {{activeCategory === item ? 'active' : ''}}"
+                wx:for="{{categories}}" wx:key="*this"
+                data-category="{{item}}" bindtap="switchCategory">{{item}}</view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view class="masonry-list" wx:if="{{posts.length > 0}}">
+    <post-card
+      wx:for="{{posts}}"
+      wx:key="id"
+      item="{{item}}"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
+      class="masonry-item"
+    ></post-card>
+  </view>
+
+  <view wx:if="{{posts.length === 0}}" class="empty">
+    <image class="empty-icon" src="/assets/icons/empty.svg" />
+    <view>暂无数据，去发布一个吧</view>
+  </view>
 </view>
