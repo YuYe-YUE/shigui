@@ -19,6 +19,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         newUser.setOpenid(openid);
         newUser.setNickname("微信用户");
         newUser.setRole("USER");
+        newUser.setStatus("NORMAL");
         save(newUser);
         return newUser.getId();
     }

@@ -12,28 +12,28 @@
 
 ## 功能范围
 
-16 个用例中选取核心子集，管理端内容审核简化为查看全量 + 删除违规：
+16 个用例中选取核心子集。管理端内容审核采用“发布后待审核，通过后进入匹配池；违规内容逻辑删除并记录原因”的最小闭环：
 
 | Sprint | 用例 | 说明 |
 |--------|------|------|
 | S1 | 微信登录认证 | 用户身份基础 |
 | S2 | 发布丢失/拾捡单 | 数据入口，含表单校验 |
 | S3 | 信息筛选 + 记录查看 | 首页列表/详情页 |
-| S4 | 内容审核（管理端） | 管理员查看全量单据 + 删除违规 |
+| S4 | 内容审核（管理端） | 管理员查看待审核/全量单据 + 审核通过 + 删除违规 |
 | S5 | 智能匹配 + 消息提醒 | 匹配算法 + 通知推送 |
 | S6 | 物品验证与认领 + 匿名聊天 | 业务闭环 |
 | S7 | 地图图钉展示 | 空间可视化 |
 
 ## 数据库设计
 
-10 张表，全部使用逻辑删除 (`deleted TINYINT DEFAULT 0`)，MyBatis-Plus 驼峰转下划线。
+10 张表，全部使用逻辑删除 (`deleted TINYINT DEFAULT 0`)，MyBatis-Plus 驼峰转下划线。`status` 只表示业务状态，删除/隐藏统一由 `deleted` 字段表达，避免 `status=DELETED` 与逻辑删除重复。
 
 | 表名 | 说明 | 关键字段 |
 |------|------|----------|
-| `app_user` | 小程序用户 | id, openid, nickname, avatar_url, role, created_at |
+| `app_user` | 小程序用户 | id, openid, nickname, avatar_url, role, status(NORMAL/BANNED), created_at |
 | `admin_user` | 后台管理员 | id, username, password_hash, created_at |
-| `lost_found_post` | 失物招领单据 | id, user_id, post_type(LOST/FOUND), title, item_name, item_category, description, private_feature, campus_area, location_name, longitude, latitude, storage_location, event_time, status(PENDING_AUDIT/MATCHING/CLAIMING/RETURNING/COMPLETED/DELETED), published_at |
-| `audit_record` | 内容审核操作日志 | id, admin_id, post_id, action(DELETE), reason, created_at |
+| `lost_found_post` | 失物招领单据 | id, user_id, post_type(LOST/FOUND), title, item_name, item_category, description, private_feature, campus_area, location_name, longitude, latitude, storage_location, event_time, status(PENDING_AUDIT/MATCHING/CLAIMING/RETURNING/COMPLETED), published_at |
+| `audit_record` | 内容审核操作日志 | id, admin_id, post_id, action(APPROVE/DELETE), reason, created_at |
 | `claim_record` | 认领申请与核验 | id, post_id, claimant_user_id, private_feature_answer, status, created_at |
 | `match_record` | 智能匹配结果 | id, lost_post_id, found_post_id, score, created_at |
 | `notification` | 站内/微信通知 | id, user_id, type, title, content, related_id, is_read, created_at |
@@ -46,15 +46,16 @@
 ```
 PENDING_AUDIT → MATCHING → CLAIMING → RETURNING → COMPLETED
                  ↓                         ↓
-              DELETED                (管理员可随时删除)
+        deleted=1 + audit_record     (管理员可随时删除)
 ```
 
 - `PENDING_AUDIT`: 发布后待审核（管理端可查看并决定保留或删除）
-- `MATCHING`: 正常在匹配池中
+- `MATCHING`: 审核通过后进入匹配池，可被筛选、匹配、地图展示
 - `CLAIMING`: 有人发起认领
 - `RETURNING`: 核验通过，等待归还
 - `COMPLETED`: 归还完成
-- `DELETED`: 管理员删除（逻辑删除 + audit_record 日志）
+- 删除不是业务状态：管理员删除时设置 `deleted=1`，并写入 `audit_record(action=DELETE, reason=...)`
+- 审核通过时写入 `audit_record(action=APPROVE)`，并将单据从 `PENDING_AUDIT` 更新为 `MATCHING`
 
 ## 后端设计
 
@@ -102,12 +103,22 @@ S1-S7 每次 Sprint 新增的端点：
 
 **S4 内容审核:**
 - `GET /api/admin/posts?page=&size=&status=` — 管理员查看全量单据
+- `POST /api/admin/posts/{id}/approve` — 管理员审核通过，单据进入匹配池
 - `DELETE /api/admin/posts/{id}` — 管理员删除违规单据 (body: {reason})
 - `POST /api/admin/login` — 管理员登录（公开）
+- `GET /api/admin/users?page=&size=&status=` — 管理员查看小程序用户
+- `PUT /api/admin/users/{id}/ban` — 封禁用户，禁止继续发布/认领/聊天
+- `PUT /api/admin/users/{id}/unban` — 解封用户
 
 **S5 智能匹配:**
 - `GET /api/matches/mine` — 查看我的匹配结果
 - `GET /api/notifications` — 获取通知列表
+
+匹配 MVP 规则：
+- 只匹配状态为 `MATCHING`、未删除、类型相反的单据（`LOST` 对 `FOUND`）
+- 分数由同校区、同品类、时间接近、标题/物品名关键词相似组成
+- 分数达到阈值后写入 `match_record`，并为双方生成 `notification`
+- 同一对 lost/found 单据只保留一条匹配记录，避免重复提醒
 
 **S6 认领与聊天:**
 - `POST /api/claims` — 发起认领申请
@@ -118,8 +129,18 @@ S1-S7 每次 Sprint 新增的端点：
 - `GET /api/chat/sessions/{id}/messages` — 获取消息
 - `POST /api/chat/sessions/{id}/messages` — 发送消息
 
+聊天权限：
+- 只有单据发布者、认领申请人、匹配结果双方可以创建或访问对应会话
+- 获取消息和发送消息都必须校验当前用户属于会话双方之一
+- 匿名聊天只在前端隐藏真实昵称；后端仍保存真实 `sender_user_id` 以便审计和风控
+
 **S7 地图:**
-- `GET /api/posts/map` — 获取地图点位（公开）
+- `GET /api/posts/map` — 获取地图点位（公开脱敏）
+
+地图返回字段限制：
+- 只返回 `id`, `postType`, `itemCategory`, `campusArea`, `locationName`, `longitude`, `latitude`, `eventTime`
+- 不返回 `description`, `privateFeature`, `storageLocation`, 用户信息、聊天或认领信息
+- 只返回 `MATCHING` 且未删除的单据
 
 ### Sa-Token 配置
 
@@ -129,6 +150,10 @@ S1-S7 每次 Sprint 新增的端点：
 /api/admin/login
 /api/posts/map
 ```
+
+封禁用户校验：
+- `app_user.status=BANNED` 的用户仍可登录查看自己的历史记录
+- 发布、认领、创建聊天、发送消息等写操作必须拒绝封禁用户
 
 ### 测试策略
 
@@ -145,7 +170,7 @@ S1-S7 每次 Sprint 新增的端点：
 |------|------|------|
 | `/login` | 登录页 | 管理员账号密码登录 |
 | `/dashboard` | 仪表盘 | 概览统计卡片 |
-| `/posts` | 内容审核 | 全量单据列表 + 查看详情 + 删除违规 + 填写原因 |
+| `/posts` | 内容审核 | 待审核/全量单据列表 + 查看详情 + 审核通过 + 删除违规 + 填写原因 |
 | `/users` | 用户管理 | 小程序用户列表 + 封禁/解封 |
 
 ### 路由与状态

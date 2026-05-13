@@ -13,6 +13,7 @@ public class AppUser {
     private String nickname;
     private String avatarUrl;
     private String role;
+    private String status;
     @TableLogic
     private Integer deleted;
     private LocalDateTime createdAt;

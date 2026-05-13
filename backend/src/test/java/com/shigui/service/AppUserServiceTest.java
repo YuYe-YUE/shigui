@@ -73,6 +73,7 @@ class AppUserServiceTest {
         when(appUserMapper.selectOne(any())).thenReturn(null);
         when(appUserMapper.insert(any(AppUser.class))).thenAnswer(inv -> {
             AppUser u = inv.getArgument(0);
+            assertThat(u.getStatus()).isEqualTo("NORMAL");
             u.setId(2L);
             return 1;
         });

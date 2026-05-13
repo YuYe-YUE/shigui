@@ -218,6 +218,7 @@ CREATE TABLE app_user (
     nickname VARCHAR(64) DEFAULT '',
     avatar_url VARCHAR(512) DEFAULT '',
     role VARCHAR(16) DEFAULT 'USER',
+    status VARCHAR(16) DEFAULT 'NORMAL' COMMENT 'NORMAL/BANNED',
     deleted TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -249,7 +250,7 @@ CREATE TABLE lost_found_post (
     latitude DECIMAL(10,7) DEFAULT NULL,
     storage_location VARCHAR(256) DEFAULT '' COMMENT '暂存地点，仅招领单填写',
     event_time DATETIME DEFAULT NULL,
-    status VARCHAR(32) DEFAULT 'PENDING_AUDIT' COMMENT 'PENDING_AUDIT/MATCHING/CLAIMING/RETURNING/COMPLETED/DELETED',
+    status VARCHAR(32) DEFAULT 'PENDING_AUDIT' COMMENT 'PENDING_AUDIT/MATCHING/CLAIMING/RETURNING/COMPLETED',
     published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -265,7 +266,7 @@ CREATE TABLE audit_record (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     admin_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
-    action VARCHAR(16) NOT NULL COMMENT 'DELETE',
+    action VARCHAR(16) NOT NULL COMMENT 'APPROVE/DELETE',
     reason VARCHAR(512) DEFAULT '',
     deleted TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -596,6 +597,7 @@ public class AppUser {
     private String nickname;
     private String avatarUrl;
     private String role;
+    private String status;
     @TableLogic
     private Integer deleted;
     private LocalDateTime createdAt;
@@ -790,6 +792,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         newUser.setOpenid(openid);
         newUser.setNickname("微信用户");
         newUser.setRole("USER");
+        newUser.setStatus("NORMAL");
         save(newUser);
         return newUser.getId();
     }
