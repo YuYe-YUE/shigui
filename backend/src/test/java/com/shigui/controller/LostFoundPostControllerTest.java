@@ -1,5 +1,6 @@
 package com.shigui.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.dto.PostResponse;
 import com.shigui.service.AppUserService;
 import com.shigui.service.LostFoundPostService;
@@ -12,10 +13,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -90,6 +94,50 @@ class LostFoundPostControllerTest {
     void getDetail_notLoggedIn_returns401() throws Exception {
         mockMvc.perform(get("/api/posts/10"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listPublic_noAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/posts"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listPublic_loggedIn_returns200() throws Exception {
+        Page<PostResponse> emptyPage = new Page<>(1, 10);
+        emptyPage.setRecords(List.of());
+        emptyPage.setTotal(0);
+        when(appUserService.loginByWechat(anyString())).thenReturn(1L);
+        when(lostFoundPostService.listPublic(eq(1), eq(10), isNull(), isNull(), isNull(), isNull())).thenReturn(emptyPage);
+
+        String token = loginAndGetToken();
+
+        mockMvc.perform(get("/api/posts")
+                        .header("satoken", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void mine_notLoggedIn_returns401() throws Exception {
+        mockMvc.perform(get("/api/posts/mine"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void mine_loggedIn_returns200() throws Exception {
+        Page<PostResponse> emptyPage = new Page<>(1, 10);
+        emptyPage.setRecords(List.of());
+        emptyPage.setTotal(0);
+        when(appUserService.loginByWechat(anyString())).thenReturn(1L);
+        when(lostFoundPostService.listMine(eq(1L), eq(1), eq(10), isNull())).thenReturn(emptyPage);
+
+        String token = loginAndGetToken();
+
+        mockMvc.perform(get("/api/posts/mine")
+                        .header("satoken", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     private String validJson() {
