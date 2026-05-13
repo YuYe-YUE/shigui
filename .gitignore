@@ -1,0 +1,26 @@
+# Maven local repository
+.maven/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+target/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+dist/
+
+# Env
+.env
+.env.local
+*.local.*
