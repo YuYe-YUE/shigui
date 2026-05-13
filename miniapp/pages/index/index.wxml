@@ -1,3 +1,4 @@
+<!-- S1 首页占位页，后续会替换为失物/招领列表。 -->
 <view class="container" style="display:flex;align-items:center;justify-content:center;height:100vh">
   <text style="font-size:36rpx;color:var(--text-second)">首页 — 即将上线</text>
 </view>

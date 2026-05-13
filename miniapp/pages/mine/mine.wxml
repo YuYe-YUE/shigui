@@ -1,7 +1,10 @@
 <view class="container">
   <view class="header-section">
+    <view class="header-bg"></view>
     <view class="user-card">
-      <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '拾'}}</view>
+      <view class="avatar-wrap">
+        <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '拾'}}</view>
+      </view>
       <view class="user-info" wx:if="{{userInfo}}">
         <view class="name">{{userInfo.nickname}}</view>
         <view class="tag">校园认证用户</view>
@@ -11,8 +14,50 @@
         <view class="tag">点击登录体验完整功能</view>
       </view>
       <view class="login-action" wx:if="{{!userInfo}}">
-        <button class="btn-login" bindtap="wxLogin">微信一键登录</button>
+        <button class="btn-login-small" bindtap="wxLogin">登录</button>
       </view>
+    </view>
+  </view>
+
+  <view class="quick-actions">
+    <view class="action-item" bindtap="goMyPosts">
+      <image class="action-icon" src="/assets/icons/post-lost.svg" />
+      <text>我的寻物</text>
+    </view>
+    <view class="action-item" bindtap="goMyPosts">
+      <image class="action-icon" src="/assets/icons/post-found.svg" />
+      <text>我的招领</text>
+    </view>
+    <view class="action-item">
+      <image class="action-icon" src="/assets/icons/chat.svg" />
+      <text>消息回复</text>
+    </view>
+  </view>
+
+  <view class="menu-group">
+    <view class="menu-item">
+      <image class="menu-icon" src="/assets/icons/doc.svg" />
+      <text class="menu-text">认领记录</text>
+      <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
+    </view>
+    <view class="menu-item">
+      <image class="menu-icon" src="/assets/icons/bell.svg" />
+      <text class="menu-text">匹配提醒</text>
+      <view class="badge"></view>
+      <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
+    </view>
+  </view>
+
+  <view class="menu-group">
+    <view class="menu-item">
+      <image class="menu-icon" src="/assets/icons/settings.svg" />
+      <text class="menu-text">系统设置</text>
+      <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
+    </view>
+    <view class="menu-item">
+      <image class="menu-icon" src="/assets/icons/info.svg" />
+      <text class="menu-text">关于拾归</text>
+      <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
     </view>
   </view>
 </view>

@@ -1,14 +1,12 @@
-<view class="page">
-  <view class="title">你想发布什么？</view>
-  <view class="subtitle">选择类型后填写物品信息，提交后等待管理员审核。</view>
-
-  <view class="type-card lost" data-type="LOST" bindtap="chooseType">
-    <view class="type-title">我丢了东西</view>
-    <view class="type-desc">发布寻物启事，让同学帮你找回。</view>
+<view class="container">
+  <view class="publish-entry" hover-class="entry-hover" data-type="lost" bindtap="goPublish">
+    <image class="entry-icon" src="/assets/icons/lost-large.svg" />
+    <view class="entry-title">发布寻物启事</view>
+    <view class="entry-desc">我丢了东西，想找回来</view>
   </view>
-
-  <view class="type-card found" data-type="FOUND" bindtap="chooseType">
-    <view class="type-title">我捡到东西</view>
-    <view class="type-desc">发布招领信息，等待失主认领。</view>
+  <view class="publish-entry" hover-class="entry-hover" data-type="found" bindtap="goPublish">
+    <image class="entry-icon" src="/assets/icons/found-large.svg" />
+    <view class="entry-title">发布招领启事</view>
+    <view class="entry-desc">我捡到了东西，帮忙找失主</view>
   </view>
 </view>

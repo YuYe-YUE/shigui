@@ -13,6 +13,7 @@
 </template>
 
 <script setup lang="ts">
+// S1 先放占位数据，等后续统计接口完成后再替换为真实请求。
 const cards = [
   { title: '注册用户', value: '--' },
   { title: '匹配中单据', value: '--' },

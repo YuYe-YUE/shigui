@@ -29,6 +29,9 @@ class AdminUserServiceTest {
 
     private AdminUserServiceImpl adminUserService;
 
+    /**
+     * 测试里复用和正式代码相同的 salt:sha256 格式，保证密码校验测的是实际规则。
+     */
     private static String hashPassword(String raw) {
         SecureRandom rng = new SecureRandom();
         byte[] saltBytes = new byte[16];
@@ -49,7 +52,7 @@ class AdminUserServiceTest {
     void setUp() {
         adminUserService = new AdminUserServiceImpl();
         try {
-            // inject baseMapper via reflection (declared in CrudRepository)
+            // ServiceImpl 的 baseMapper 原本由 Spring/MyBatis 注入；单元测试里用反射放入 mock。
             java.lang.reflect.Field baseMapperField = null;
             Class<?> clazz = adminUserService.getClass();
             while (clazz != null && baseMapperField == null) {
@@ -65,7 +68,7 @@ class AdminUserServiceTest {
             baseMapperField.setAccessible(true);
             baseMapperField.set(adminUserService, adminUserMapper);
 
-            // inject entityClass and mapperClass to avoid MyBatis proxy detection in lambdaQuery()
+            // lambdaQuery() 需要实体和 Mapper 类型；这里手动补齐，避免启动完整数据库环境。
             java.lang.reflect.Field entityClassField = com.baomidou.mybatisplus.extension.repository.AbstractRepository.class.getDeclaredField("entityClass");
             entityClassField.setAccessible(true);
             entityClassField.set(adminUserService, AdminUser.class);
@@ -82,6 +85,7 @@ class AdminUserServiceTest {
 
     @Test
     void login_correctCredentials_returnsToken() {
+        // Sa-Token 是静态工具类；这里 mock 它的 token 返回值，只验证登录业务逻辑。
         String passwordHash = hashPassword("admin123");
         AdminUser admin = new AdminUser();
         admin.setId(1L);
@@ -98,6 +102,7 @@ class AdminUserServiceTest {
 
     @Test
     void login_wrongPassword_throwsException() {
+        // 用户存在但密码不匹配时，应该给出统一的登录失败提示。
         String passwordHash = hashPassword("correct_password");
         AdminUser admin = new AdminUser();
         admin.setId(1L);

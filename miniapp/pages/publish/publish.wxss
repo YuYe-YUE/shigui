@@ -1,47 +1,70 @@
-.page {
+.container {
+  padding: 60rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 100vh;
+}
+
+.publish-entry {
+  border-radius: 40rpx;
   padding: 80rpx 40rpx;
-  background: var(--bg-color);
-  box-sizing: border-box;
+  text-align: center;
+  margin-bottom: 40rpx;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.title {
-  font-size: 44rpx;
-  font-weight: 700;
+.entry-hover {
+  transform: scale(0.96) translateY(4rpx);
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.02);
+}
+
+.publish-entry::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+
+.publish-entry:nth-child(1) {
+  background: linear-gradient(145deg, #ffffff 0%, var(--lost-light) 100%);
+  border: 2rpx solid #F5E0C0;
+}
+
+.publish-entry:nth-child(2) {
+  background: linear-gradient(145deg, #ffffff 0%, var(--found-light) 100%);
+  border: 2rpx solid #C8E6C9;
+}
+
+.entry-icon {
+  width: 140rpx;
+  height: 140rpx;
+  margin-bottom: 30rpx;
+  display: block;
+  filter: drop-shadow(0 8rpx 12rpx rgba(0,0,0,0.06));
+}
+
+.entry-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  margin-bottom: 16rpx;
   color: var(--text-main);
+  letter-spacing: 2rpx;
 }
 
-.subtitle {
-  margin-top: 16rpx;
-  margin-bottom: 48rpx;
-  color: var(--text-second);
+.entry-desc {
   font-size: 28rpx;
-  line-height: 1.6;
-}
-
-.type-card {
-  padding: 44rpx 36rpx;
-  margin-bottom: 28rpx;
-  border-radius: 24rpx;
-  background: var(--white);
-  box-shadow: var(--shadow);
-}
-
-.type-card.lost {
-  border-left: 12rpx solid var(--lost-color);
-}
-
-.type-card.found {
-  border-left: 12rpx solid var(--found-color);
-}
-
-.type-title {
-  font-size: 34rpx;
-  font-weight: 700;
-}
-
-.type-desc {
-  margin-top: 12rpx;
-  font-size: 26rpx;
   color: var(--text-second);
+  max-width: 80%;
+  line-height: 1.5;
 }

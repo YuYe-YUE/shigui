@@ -10,11 +10,23 @@ page {
   --text-second: #666666;
   --text-light: #999999;
   --white: #FFFFFF;
-  --shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   --border-radius: 16rpx;
 
   font-size: 28rpx;
   color: var(--text-main);
   background: var(--bg-color);
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
+}
+
+.container {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  color: transparent;
 }

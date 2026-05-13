@@ -1,0 +1,175 @@
+.container {
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom)); /* 留出底部悬浮栏空间 */
+  background: var(--bg-color);
+  min-height: 100vh;
+}
+
+/* 英雄区 (Hero Section) */
+.hero-section {
+  width: 100%;
+  height: 380rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  position: relative;
+  z-index: 1;
+}
+
+.hero-lost {
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFF3E0 100%);
+}
+
+.hero-found {
+  background: linear-gradient(135deg, #C8E6C9 0%, #E8F5E9 100%);
+}
+
+.hero-icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
+  text-shadow: 0 4rpx 16rpx rgba(0,0,0,0.1);
+  transform: scale(1);
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.hero-status {
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+/* 信息卡片 */
+.info-card {
+  background: var(--white);
+  border-radius: 24rpx;
+  padding: 40rpx 30rpx;
+  margin: 0 30rpx 24rpx;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 2;
+}
+
+.main-card {
+  margin-top: -60rpx; /* 向上叠层效果 */
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-bottom: 20rpx;
+  color: var(--text-main);
+}
+
+.d-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  margin-bottom: 20rpx;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.tag-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 32rpx;
+}
+
+.d-tag {
+  font-size: 22rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  font-weight: 600;
+}
+.tag-category { background: #f0f0f0; color: var(--text-second); }
+.type-lost { background: var(--lost-light); color: var(--lost-color); }
+.type-found { background: var(--found-light); color: var(--found-color); }
+
+/* 信息行 */
+.d-row {
+  padding: 24rpx 0;
+  border-bottom: 1rpx dashed #f0f0f0;
+  font-size: 28rpx;
+  display: flex;
+  align-items: flex-start;
+}
+.d-row:last-child { border-bottom: none; padding-bottom: 0; }
+.label {
+  color: var(--text-light);
+  flex-shrink: 0;
+  width: 140rpx;
+}
+.value {
+  flex: 1;
+  color: var(--text-main);
+  font-weight: 500;
+}
+.highlight-location {
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+.inline-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 8rpx;
+}
+
+/* 描述文本 */
+.d-desc {
+  font-size: 28rpx;
+  color: var(--text-second);
+  line-height: 1.6;
+  background: #fafafa;
+  padding: 24rpx;
+  border-radius: 12rpx;
+  border-left: 6rpx solid var(--primary-color);
+}
+
+/* 底部悬浮操作栏 */
+.fab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20rpx 30rpx calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 24rpx;
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
+  z-index: 100;
+}
+
+.btn-primary {
+  flex: 2;
+  background: var(--primary-color);
+  color: var(--white);
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 16rpx rgba(46, 125, 50, 0.2);
+}
+
+.btn-secondary {
+  flex: 1;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

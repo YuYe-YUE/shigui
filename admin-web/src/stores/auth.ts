@@ -4,6 +4,7 @@ import api from '../api'
 import router from '../router'
 
 export const useAuthStore = defineStore('auth', () => {
+  // 刷新页面后从 localStorage 恢复 token，避免登录态立刻丢失。
   const token = ref(localStorage.getItem('adminToken') || '')
 
   async function login(username: string, password: string) {
@@ -14,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    // 退出登录时同时清理内存状态和持久化 token。
     token.value = ''
     localStorage.removeItem('adminToken')
     router.push('/login')

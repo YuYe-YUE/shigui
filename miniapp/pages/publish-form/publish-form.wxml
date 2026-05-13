@@ -1,52 +1,47 @@
-<view class="page">
-  <view class="form-title">{{postType === 'LOST' ? '发布寻物' : '发布招领'}}</view>
-
-  <view class="field">
-    <text class="label">标题</text>
-    <input value="{{title}}" data-field="title" bindinput="onInput" placeholder="例如：丢失校园卡" />
+<view class="container">
+  <view class="form-group">
+    <view class="form-label">物品名称 <text class="required">*</text></view>
+    <input class="form-input" placeholder="如：校园卡、黑色双肩包" data-field="itemName" bindinput="setField" value="{{form.itemName}}" />
   </view>
 
-  <view class="field">
-    <text class="label">物品名称</text>
-    <input value="{{itemName}}" data-field="itemName" bindinput="onInput" placeholder="例如：校园卡" />
-  </view>
-
-  <view class="field">
-    <text class="label">物品分类</text>
-    <input value="{{itemCategory}}" data-field="itemCategory" bindinput="onInput" placeholder="例如：证件 / 数码 / 衣物" />
-  </view>
-
-  <view class="field">
-    <text class="label">校区</text>
-    <input value="{{campusArea}}" data-field="campusArea" bindinput="onInput" placeholder="例如：南校园" />
-  </view>
-
-  <view class="field">
-    <text class="label">地点</text>
-    <input value="{{locationName}}" data-field="locationName" bindinput="onInput" placeholder="例如：逸夫楼" />
-  </view>
-
-  <view class="field">
-    <text class="label">发生日期</text>
-    <picker mode="date" value="{{eventTime}}" bindchange="onDateChange">
-      <view class="picker-value {{eventTime ? '' : 'placeholder'}}">{{eventTime || '请选择发生日期'}}</view>
+  <view class="form-group">
+    <view class="form-label">物品类别 <text class="required">*</text></view>
+    <picker mode="selector" range="{{categories}}" bindchange="selectCategory">
+      <view class="form-input">{{form.itemCategory || '请选择'}}</view>
     </picker>
   </view>
 
-  <view class="field">
-    <text class="label">描述</text>
-    <textarea value="{{description}}" data-field="description" bindinput="onInput" placeholder="描述物品外观、可能位置等信息" />
+  <view class="form-group">
+    <view class="form-label">时间 <text class="required">*</text></view>
+    <picker mode="date" data-field="eventTime" bindchange="setField">
+      <view class="form-input">{{form.eventTime || '请选择'}}</view>
+    </picker>
   </view>
 
-  <view class="field">
-    <text class="label">私密特征</text>
-    <textarea value="{{privateFeature}}" data-field="privateFeature" bindinput="onInput" placeholder="用于认领核验，不会在地图公开接口返回" />
+  <view class="form-group">
+    <view class="form-label">校园区域</view>
+    <input class="form-input" placeholder="如：南校区" data-field="campusArea" bindinput="setField" value="{{form.campusArea}}" />
   </view>
 
-  <view class="field" wx:if="{{postType === 'FOUND'}}">
-    <text class="label">暂存地点</text>
-    <input value="{{storageLocation}}" data-field="storageLocation" bindinput="onInput" placeholder="例如：保卫处前台" />
+  <view class="form-group">
+    <view class="form-label">具体地点 <text class="required">*</text></view>
+    <input class="form-input" placeholder="如：第二食堂二楼" data-field="locationName" bindinput="setField" value="{{form.locationName}}" />
   </view>
 
-  <button class="submit" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submitPost">提交审核</button>
+  <view class="form-group">
+    <view class="form-label">物品描述</view>
+    <textarea class="form-textarea" placeholder="补充物品的外观、颜色、品牌等特征" data-field="description" bindinput="setField" value="{{form.description}}" />
+  </view>
+
+  <view class="form-group">
+    <view class="form-label">非公开特征</view>
+    <textarea class="form-textarea" placeholder="只有真正的物主才知道的信息，用于核验身份" data-field="privateFeature" bindinput="setField" value="{{form.privateFeature}}" />
+  </view>
+
+  <view class="form-group" wx:if="{{postType === 'FOUND'}}">
+    <view class="form-label">暂存地点</view>
+    <input class="form-input" placeholder="物品现在存放在哪里" data-field="storageLocation" bindinput="setField" value="{{form.storageLocation}}" />
+  </view>
+
+  <button class="submit-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交发布</button>
 </view>

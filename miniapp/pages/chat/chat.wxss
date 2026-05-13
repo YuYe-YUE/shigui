@@ -1,0 +1,53 @@
+/* 聊天页面布局 */
+.container { display: flex; flex-direction: column; height: 100vh; }
+
+/* 消息列表 */
+.msg-list { flex: 1; padding: 14px; background: #f0f2f0; }
+.msg-item { margin-bottom: 14px; display: flex; }
+.msg-left { justify-content: flex-start; }
+.msg-right { justify-content: flex-end; }
+
+/* 聊天气泡 */
+.msg-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.msg-left .msg-bubble {
+  background: #fff;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+.msg-right .msg-bubble {
+  background: #00573D;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+/* 底部输入栏 */
+.input-bar {
+  display: flex;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  align-items: center;
+}
+.chat-input {
+  flex: 1;
+  background: #f0f2f0;
+  padding: 10px 14px;
+  border-radius: 24px;
+  font-size: 14px;
+}
+.send-btn {
+  margin-left: 10px;
+  background: #00573D;
+  color: #fff;
+  border-radius: 24px;
+  font-size: 13px;
+  padding: 0 18px;
+  height: 40px;
+  line-height: 40px;
+}

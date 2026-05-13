@@ -1,0 +1,23 @@
+<view class="post-card">
+  <!-- 占位图区域：未来可替换为 real image -->
+  <view class="image-placeholder">
+    <image class="image-icon" src="/assets/icons/image.svg" />
+  </view>
+  
+  <view class="content">
+    <!-- 标题区：允许换行 -->
+    <view class="header">
+      <view class="post-type {{item.postType === 'LOST' ? 'type-lost' : 'type-found'}}">{{item.postType === 'LOST' ? '寻物' : '招领'}}</view>
+      <view class="post-title">{{item.title}}</view>
+    </view>
+    
+    <!-- 地点与时间 -->
+    <view class="meta">
+      <view class="location">
+        <image class="mini-icon" src="/assets/icons/map-pin-small.svg" />
+        <text>{{item.campusArea || ''}} {{item.locationName || ''}}</text>
+      </view>
+      <view class="time">{{item.publishedAt}}</view>
+    </view>
+  </view>
+</view>

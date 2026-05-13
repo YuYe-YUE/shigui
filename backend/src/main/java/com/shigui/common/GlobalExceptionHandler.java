@@ -2,25 +2,54 @@ package com.shigui.common;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Sa-Token 在未登录或 token 失效时会抛出这个异常，统一转换成前端好判断的 401 响应。
+     */
     @ExceptionHandler(NotLoginException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<Void> handleNotLogin(NotLoginException e) {
         return Result.fail(401, "未登录或登录已过期");
     }
 
+    /**
+     * 业务参数不合法时抛 IllegalArgumentException，统一返回 400 和具体提示。
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleBadRequest(IllegalArgumentException e) {
         return Result.fail(400, e.getMessage());
     }
 
+    /**
+     * 请求路径存在但 HTTP 方法不匹配时返回 405，例如用浏览器 GET 访问只支持 POST 的登录接口。
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Result<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return Result.fail(405, "请求方法不支持");
+    }
+
+    /**
+     * 非 API 静态资源不存在时返回 404，避免被兜底处理误判成服务器内部错误。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFound(NoResourceFoundException e) {
+        return Result.fail(404, "资源不存在");
+    }
+
+    /**
+     * 兜底异常处理，避免把 Java 堆栈信息直接暴露给前端。
+     */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e) {

@@ -49,5 +49,9 @@ Page({
         })
       }
     })
+  },
+
+  goMyPosts() {
+    wx.navigateTo({ url: '/pages/index/index?tab=mine' })
   }
 })

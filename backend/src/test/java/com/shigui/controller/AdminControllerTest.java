@@ -25,6 +25,9 @@ class AdminControllerTest {
     @MockitoBean
     private AdminUserService adminUserService;
 
+    /**
+     * Controller 测试只关心 HTTP 入参和响应结构，具体密码校验由 Service 单元测试覆盖。
+     */
     @Test
     void login_success_returnsToken() throws Exception {
         when(adminUserService.login(anyString(), anyString())).thenReturn("test-token-123");
@@ -38,6 +41,7 @@ class AdminControllerTest {
 
     @Test
     void login_emptyUsername_returns400() throws Exception {
+        // 参数缺失时 Controller 直接返回业务错误码，不进入 Service。
         mockMvc.perform(post("/api/admin/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"\",\"password\":\"admin123\"}"))

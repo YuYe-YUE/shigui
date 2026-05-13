@@ -1,0 +1,21 @@
+<!-- 地图页：地图图钉与单据弹窗 -->
+<map
+  class="full-map"
+  latitude="{{latitude}}"
+  longitude="{{longitude}}"
+  scale="{{scale}}"
+  markers="{{markers}}"
+  bindmarkertap="onMarkerTap"
+/>
+
+<!-- 底部弹出卡片 -->
+<view class="popup" wx:if="{{selectedPost}}" catchtap="goDetail">
+  <view class="popup-header">
+    <text class="popup-title">{{selectedPost.title}}</text>
+    <text class="popup-type {{selectedPost.postType === 'LOST' ? 'type-lost' : 'type-found'}}">
+      {{selectedPost.postType === 'LOST' ? '寻物' : '招领'}}
+    </text>
+  </view>
+  <view class="popup-meta">{{selectedPost.callout.content.split('\n')[1]}}</view>
+  <view class="popup-action">查看详情 ›</view>
+</view>

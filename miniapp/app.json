@@ -2,8 +2,11 @@
   "pages": [
     "pages/index/index",
     "pages/publish/publish",
+    "pages/mine/mine",
+    "pages/detail/detail",
     "pages/publish-form/publish-form",
-    "pages/mine/mine"
+    "pages/chat/chat",
+    "pages/map/map"
   ],
   "window": {
     "navigationBarBackgroundColor": "#00573D",

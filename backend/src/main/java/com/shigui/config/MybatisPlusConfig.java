@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Configuration;
 @MapperScan("com.shigui.mapper")
 public class MybatisPlusConfig {
 
+    /**
+     * 注册 MyBatis-Plus 拦截器。分页插件会在后续列表接口中用于 page/size 查询。
+     */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();

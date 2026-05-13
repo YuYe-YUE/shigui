@@ -25,7 +25,7 @@ class AppUserServiceTest {
     void setUp() {
         appUserService = new com.shigui.service.impl.AppUserServiceImpl();
         try {
-            // inject baseMapper via reflection (declared in CrudRepository)
+            // ServiceImpl 的 baseMapper 原本由 Spring/MyBatis 注入；单元测试里用反射放入 mock。
             java.lang.reflect.Field baseMapperField = null;
             Class<?> clazz = appUserService.getClass();
             while (clazz != null && baseMapperField == null) {
@@ -41,7 +41,7 @@ class AppUserServiceTest {
             baseMapperField.setAccessible(true);
             baseMapperField.set(appUserService, appUserMapper);
 
-            // inject entityClass and mapperClass to avoid MyBatis proxy detection in lambdaQuery()
+            // lambdaQuery() 需要实体和 Mapper 类型；这里手动补齐，避免启动完整数据库环境。
             java.lang.reflect.Field entityClassField = com.baomidou.mybatisplus.extension.repository.AbstractRepository.class.getDeclaredField("entityClass");
             entityClassField.setAccessible(true);
             entityClassField.set(appUserService, AppUser.class);
@@ -70,6 +70,7 @@ class AppUserServiceTest {
 
     @Test
     void loginByWechat_newUser_createsAndReturnsId() {
+        // 新用户必须带 NORMAL 状态，这是后续封禁逻辑的默认基线。
         when(appUserMapper.selectOne(any())).thenReturn(null);
         when(appUserMapper.insert(any(AppUser.class))).thenAnswer(inv -> {
             AppUser u = inv.getArgument(0);

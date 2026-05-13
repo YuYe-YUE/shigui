@@ -3,33 +3,40 @@ const app = getApp()
 Page({
   data: {
     postType: 'LOST',
-    title: '',
-    itemName: '',
-    itemCategory: '',
-    description: '',
-    privateFeature: '',
-    campusArea: '',
-    locationName: '',
-    storageLocation: '',
-    eventTime: '',
+    categories: ['校园卡', '学生证', '钥匙', '耳机', '水杯', '雨伞', '书籍', '其他'],
+    form: {
+      itemName: '',
+      itemCategory: '',
+      description: '',
+      privateFeature: '',
+      campusArea: '',
+      locationName: '',
+      eventTime: '',
+      storageLocation: ''
+    },
     submitting: false
   },
 
   onLoad(options) {
-    const type = options.type === 'FOUND' ? 'FOUND' : 'LOST'
+    const type = options.type === 'found' ? 'FOUND' : 'LOST'
     this.setData({ postType: type })
+    wx.setNavigationBarTitle({
+      title: type === 'LOST' ? '发布寻物启事' : '发布招领启事'
+    })
   },
 
-  onInput(event) {
-    const field = event.currentTarget.dataset.field
-    this.setData({ [field]: event.detail.value })
+  setField(e) {
+    const field = e.currentTarget.dataset.field
+    const value = e.detail.value
+    this.setData({ [`form.${field}`]: value })
   },
 
-  onDateChange(event) {
-    this.setData({ eventTime: event.detail.value })
+  selectCategory(e) {
+    const idx = e.detail.value
+    this.setData({ 'form.itemCategory': this.data.categories[idx] })
   },
 
-  submitPost() {
+  submit() {
     const token = app.globalData.token
     if (!token) {
       wx.showToast({ title: '请先登录', icon: 'none' })
@@ -42,11 +49,25 @@ Page({
       return
     }
     this.setData({ submitting: true })
+
+    const payload = {
+      postType: this.data.postType,
+      title: this.data.form.itemName,
+      itemName: this.data.form.itemName,
+      itemCategory: this.data.form.itemCategory,
+      description: this.data.form.description,
+      privateFeature: this.data.form.privateFeature,
+      campusArea: this.data.form.campusArea,
+      locationName: this.data.form.locationName,
+      storageLocation: this.data.postType === 'FOUND' ? this.data.form.storageLocation : '',
+      eventTime: this.data.form.eventTime ? `${this.data.form.eventTime}T00:00:00` : ''
+    }
+
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts`,
       method: 'POST',
       header: { satoken: token },
-      data: this.buildPayload(),
+      data: payload,
       success: (res) => {
         if (res.data.code === 200) {
           wx.showToast({ title: '提交成功，等待审核', icon: 'success' })
@@ -61,27 +82,12 @@ Page({
   },
 
   validate() {
-    if (!this.data.title.trim()) return '请填写标题'
-    if (!this.data.itemName.trim()) return '请填写物品名称'
-    if (!this.data.itemCategory.trim()) return '请填写物品分类'
-    if (!this.data.campusArea.trim()) return '请填写校区'
-    if (!this.data.locationName.trim()) return '请填写地点'
-    if (!this.data.eventTime.trim()) return '请选择时间'
+    const f = this.data.form
+    if (!f.itemName.trim()) return '请填写物品名称'
+    if (!f.itemCategory.trim()) return '请选择物品类别'
+    if (!f.campusArea.trim()) return '请填写校区'
+    if (!f.locationName.trim()) return '请填写地点'
+    if (!f.eventTime.trim()) return '请选择时间'
     return ''
-  },
-
-  buildPayload() {
-    return {
-      postType: this.data.postType,
-      title: this.data.title,
-      itemName: this.data.itemName,
-      itemCategory: this.data.itemCategory,
-      description: this.data.description,
-      privateFeature: this.data.privateFeature,
-      campusArea: this.data.campusArea,
-      locationName: this.data.locationName,
-      storageLocation: this.data.postType === 'FOUND' ? this.data.storageLocation : '',
-      eventTime: `${this.data.eventTime}T00:00:00`
-    }
   }
 })

@@ -29,6 +29,9 @@ class AppUserControllerTest {
     @MockitoBean
     private AppUserService appUserService;
 
+    /**
+     * 登录接口应完成两件事：调用业务层确认用户，并返回 Sa-Token 生成的 token。
+     */
     @Test
     void wxLogin_newUser_returnsToken() throws Exception {
         when(appUserService.loginByWechat(anyString())).thenReturn(1L);
@@ -52,6 +55,7 @@ class AppUserControllerTest {
 
     @Test
     void me_notLoggedIn_returns401() throws Exception {
+        // /me 受 Sa-Token 拦截保护，未登录时应由全局异常处理器转换成 401。
         mockMvc.perform(get("/api/user/me"))
                 .andExpect(status().isUnauthorized());
     }

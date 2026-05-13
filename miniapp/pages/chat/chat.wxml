@@ -1,0 +1,16 @@
+<!-- 聊天页 -->
+<view class="container">
+  <!-- 消息列表区域 -->
+  <scroll-view class="msg-list" scroll-y>
+    <view class="msg-item {{message.senderUserId === myId ? 'msg-right' : 'msg-left'}}"
+          wx:for="{{messages}}" wx:key="id">
+      <view class="msg-bubble">{{message.content}}</view>
+    </view>
+  </scroll-view>
+
+  <!-- 输入栏：消息输入与发送 -->
+  <view class="input-bar">
+    <input class="chat-input" value="{{inputText}}" placeholder="输入消息" bindinput="setInput" confirm-type="send" bindconfirm="send" />
+    <button class="send-btn" bindtap="send">发送</button>
+  </view>
+</view>

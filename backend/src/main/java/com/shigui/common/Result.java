@@ -4,6 +4,9 @@ import lombok.Data;
 
 @Data
 public class Result<T> {
+    /**
+     * 统一响应体。前端只需要按 code/message/data 三个字段处理所有接口结果。
+     */
     private int code;
     private String message;
     private T data;

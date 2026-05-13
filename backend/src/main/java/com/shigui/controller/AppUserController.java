@@ -18,6 +18,9 @@ public class AppUserController {
         this.appUserService = appUserService;
     }
 
+    /**
+     * 小程序登录入口。当前 Sprint 用 openid 模拟微信登录，后续可替换成 wx.code2Session。
+     */
     @PostMapping("/wx-login")
     public Result<String> wxLogin(@RequestBody Map<String, String> body) {
         String openid = body.getOrDefault("openid", "");
@@ -29,6 +32,9 @@ public class AppUserController {
         return Result.ok(StpUtil.getTokenValue());
     }
 
+    /**
+     * 返回当前登录用户信息，用于小程序“我的”页面初始化。
+     */
     @GetMapping("/me")
     public Result<AppUser> me() {
         Long userId = StpUtil.getLoginIdAsLong();

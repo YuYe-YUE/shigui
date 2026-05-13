@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const auth = useAuthStore()
+// 菜单以数组维护，后续增加内容审核、用户管理时只需追加配置。
 const menuItems = [
   { path: '/dashboard', title: '仪表盘' },
 ]

@@ -1,0 +1,50 @@
+<!-- 单据详情页 -->
+<view class="container" wx:if="{{post}}">
+  <!-- 顶部英雄区 (Hero Section) -->
+  <view class="hero-section {{post.postType === 'LOST' ? 'hero-lost' : 'hero-found'}}">
+    <image class="hero-icon" src="/assets/icons/{{post.postType === 'LOST' ? 'lost-large' : 'found-large'}}.svg" />
+    <view class="hero-status">{{post.status === 'MATCHING' ? (post.postType === 'LOST' ? '正在寻找物品' : '等待失主认领') : post.status}}</view>
+  </view>
+
+  <!-- 核心信息卡片 -->
+  <view class="info-card main-card">
+    <view class="d-title">{{post.title}}</view>
+    <view class="tag-row">
+      <text class="d-tag {{post.postType === 'LOST' ? 'type-lost' : 'type-found'}}">{{post.postType === 'LOST' ? '寻物' : '招领'}}</text>
+      <text class="d-tag tag-category">{{post.itemCategory}}</text>
+    </view>
+    
+    <view class="d-row">
+      <text class="label">物品名称</text>
+      <text class="value">{{post.itemName}}</text>
+    </view>
+    <view class="d-row">
+      <text class="label">时间</text>
+      <text class="value">{{post.eventTime}}</text>
+    </view>
+    <view class="d-row">
+      <text class="label">地点</text>
+      <view class="value highlight-location">
+        <image class="inline-icon" src="/assets/icons/map-pin.svg" />
+        <text>{{post.campusArea}} {{post.locationName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 补充信息卡片 -->
+  <view class="info-card">
+    <view class="card-title">详细描述</view>
+    <view class="d-desc">{{post.description || '发布者未留下详细描述...'}}</view>
+  </view>
+
+  <view class="info-card" wx:if="{{post.storageLocation}}">
+    <view class="card-title">暂存处</view>
+    <view class="d-desc">{{post.storageLocation}}</view>
+  </view>
+
+  <!-- 底部悬浮操作栏 (FAB) -->
+  <view class="fab-bar">
+    <button class="btn-primary" bindtap="applyClaim">申请认领</button>
+    <button class="btn-secondary" bindtap="openChat">联系对方</button>
+  </view>
+</view>
