@@ -1,6 +1,6 @@
 <view class="container">
   <view class="sticky-header">
-    <view class="search-row">
+    <view class="search-row" wx:if="{{mode !== 'mine'}}">
       <view class="search-box">
         <image class="search-icon" src="/assets/icons/search.svg" />
         <input class="search-input" value="{{keyword}}" placeholder="搜索失物/招领..." placeholder-class="search-placeholder" bindinput="onSearchInput" bindconfirm="onSearchConfirm" confirm-type="search" />
@@ -10,7 +10,11 @@
       </view>
     </view>
 
-    <view class="filter-row">
+    <view class="search-row" wx:if="{{mode === 'mine'}}">
+      <view style="font-size:34rpx;font-weight:700;color:var(--text-main);flex:1">我的记录</view>
+    </view>
+
+    <view class="filter-row" wx:if="{{mode !== 'mine'}}">
       <view class="mini-capsule">
         <view class="capsule-slider pos-{{activeTab}}"></view>
         <view class="capsule-item {{activeTab === 'lost' ? 'active' : ''}}" data-tab="lost" bindtap="switchTab">寻</view>
@@ -42,6 +46,7 @@
 
   <view wx:if="{{posts.length === 0}}" class="empty">
     <image class="empty-icon" src="/assets/icons/empty.svg" />
-    <view>暂无数据，去发布一个吧</view>
+    <view wx:if="{{mode === 'mine'}}">你还没有发布过单据</view>
+    <view wx:else>暂无数据，去发布一个吧</view>
   </view>
 </view>

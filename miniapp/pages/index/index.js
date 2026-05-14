@@ -7,10 +7,18 @@ Page({
     activeCategory: '全部',
     activeTab: 'all',
     page: 1,
-    keyword: ''
+    keyword: '',
+    mode: 'public',   // 'public' | 'mine'
+    myPostType: ''    // 'LOST' | 'FOUND' | ''
   },
 
-  onLoad() {
+  onLoad(options) {
+    if (options && options.tab === 'mine') {
+      this.setData({ mode: 'mine', myPostType: (options.type || '').toUpperCase() })
+      if (options.type) {
+        this.setData({ activeTab: options.type })
+      }
+    }
     this.loadPosts()
   },
 
@@ -25,12 +33,19 @@ Page({
   },
 
   loadPosts() {
-    const { activeCategory, activeTab, page, keyword } = this.data
-    let url = `${app.globalData.baseUrl}/api/posts?page=${page}&size=10`
-    if (activeTab !== 'all') url += `&postType=${activeTab.toUpperCase()}`
-    if (activeCategory !== '全部') url += `&itemCategory=${activeCategory}`
-    if (keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`
+    const { activeCategory, activeTab, page, keyword, mode, myPostType } = this.data
     const token = app.globalData.token
+    let url
+
+    if (mode === 'mine') {
+      url = `${app.globalData.baseUrl}/api/posts/mine?page=${page}&size=10`
+      if (myPostType) url += `&postType=${myPostType}`
+    } else {
+      url = `${app.globalData.baseUrl}/api/posts?page=${page}&size=10`
+      if (activeTab !== 'all') url += `&postType=${activeTab.toUpperCase()}`
+      if (activeCategory !== '全部') url += `&itemCategory=${activeCategory}`
+      if (keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`
+    }
 
     return new Promise((resolve) => {
       wx.request({
