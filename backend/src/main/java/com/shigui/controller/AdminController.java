@@ -5,9 +5,9 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.common.Result;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
+import com.shigui.service.AdminPostService;
 import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
-import com.shigui.service.AuditRecordService;
 import com.shigui.service.LostFoundPostService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
@@ -22,31 +22,25 @@ public class AdminController {
 
     private final AdminUserService adminUserService;
     private final LostFoundPostService lostFoundPostService;
-    private final AuditRecordService auditRecordService;
+    private final AdminPostService adminPostService;
     private final AppUserService appUserService;
 
     public AdminController(AdminUserService adminUserService,
                            LostFoundPostService lostFoundPostService,
-                           AuditRecordService auditRecordService,
+                           AdminPostService adminPostService,
                            AppUserService appUserService) {
         this.adminUserService = adminUserService;
         this.lostFoundPostService = lostFoundPostService;
-        this.auditRecordService = auditRecordService;
+        this.adminPostService = adminPostService;
         this.appUserService = appUserService;
     }
 
-    /**
-     * 校验当前登录是否为管理员。普通用户 token 会抛出 NotPermissionException → 403。
-     */
     private void requireAdmin() {
         if (StpUtil.getLoginIdAsLong() < ADMIN_ID_OFFSET) {
             throw new NotPermissionException("需要管理员权限");
         }
     }
 
-    /**
-     * 管理端登录入口。Controller 只做参数检查和响应包装，密码校验交给 Service。
-     */
     @PostMapping("/login")
     public Result<String> login(@RequestBody Map<String, String> body) {
         String username = body.getOrDefault("username", "");
@@ -84,30 +78,26 @@ public class AdminController {
     @PostMapping("/posts/{id}/approve")
     public Result<Void> approvePost(@PathVariable Long id) {
         requireAdmin();
-        Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
-        LostFoundPost post = lostFoundPostService.getById(id);
-        if (post == null) return Result.fail(404, "单据不存在");
-        if (post.getDeleted() != null && post.getDeleted() == 1) return Result.fail(400, "单据已被删除");
-        if (!"PENDING_AUDIT".equals(post.getStatus())) return Result.fail(400, "只能审核待审核状态的单据");
-        post.setStatus("MATCHING");
-        lostFoundPostService.updateById(post);
-        auditRecordService.logApprove(adminId, id);
-        return Result.ok();
+        try {
+            Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
+            adminPostService.approvePost(adminId, id);
+            return Result.ok();
+        } catch (IllegalArgumentException e) {
+            return Result.fail(400, e.getMessage());
+        }
     }
 
     @DeleteMapping("/posts/{id}")
     public Result<Void> deletePost(@PathVariable Long id, @RequestBody Map<String, String> body) {
         requireAdmin();
-        Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
-        LostFoundPost post = lostFoundPostService.getById(id);
-        if (post == null) return Result.fail(404, "单据不存在");
-        if (post.getDeleted() != null && post.getDeleted() == 1) return Result.fail(400, "单据已被删除");
-        String reason = body.getOrDefault("reason", "");
-        if (reason.isBlank()) return Result.fail(400, "删除原因不能为空");
-        post.setDeleted(1);
-        lostFoundPostService.updateById(post);
-        auditRecordService.logDelete(adminId, id, reason);
-        return Result.ok();
+        try {
+            Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
+            String reason = body.getOrDefault("reason", "");
+            adminPostService.deletePost(adminId, id, reason);
+            return Result.ok();
+        } catch (IllegalArgumentException e) {
+            return Result.fail(400, e.getMessage());
+        }
     }
 
     @GetMapping("/users")

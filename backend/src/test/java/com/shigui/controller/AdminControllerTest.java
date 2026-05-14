@@ -1,9 +1,9 @@
 package com.shigui.controller;
 
 import com.shigui.entity.LostFoundPost;
+import com.shigui.service.AdminPostService;
 import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
-import com.shigui.service.AuditRecordService;
 import com.shigui.service.LostFoundPostService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,7 +42,7 @@ class AdminControllerTest {
     private LostFoundPostService lostFoundPostService;
 
     @MockitoBean
-    private AuditRecordService auditRecordService;
+    private AdminPostService adminPostService;
 
     @MockitoBean
     private AppUserService appUserService;
@@ -127,9 +129,6 @@ class AdminControllerTest {
     @Test
     void approvePost_loggedIn_returns200() throws Exception {
         String token = getAdminToken();
-        LostFoundPost post = new LostFoundPost();
-        post.setId(1L); post.setStatus("PENDING_AUDIT");
-        when(lostFoundPostService.getById(1L)).thenReturn(post);
         mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
     }
@@ -137,9 +136,8 @@ class AdminControllerTest {
     @Test
     void approvePost_alreadyDeleted_returns400() throws Exception {
         String token = getAdminToken();
-        LostFoundPost post = new LostFoundPost();
-        post.setId(1L); post.setStatus("PENDING_AUDIT"); post.setDeleted(1);
-        when(lostFoundPostService.getById(1L)).thenReturn(post);
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("单据已被删除"))
+                .when(adminPostService).approvePost(anyLong(), anyLong());
         mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
     }
@@ -147,9 +145,6 @@ class AdminControllerTest {
     @Test
     void deletePost_loggedIn_returns200() throws Exception {
         String token = getAdminToken();
-        LostFoundPost post = new LostFoundPost();
-        post.setId(1L);
-        when(lostFoundPostService.getById(1L)).thenReturn(post);
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .header("satoken", token).content("{\"reason\":\"违规\"}"))
@@ -159,9 +154,8 @@ class AdminControllerTest {
     @Test
     void deletePost_noReason_returns400() throws Exception {
         String token = getAdminToken();
-        LostFoundPost post = new LostFoundPost();
-        post.setId(1L);
-        when(lostFoundPostService.getById(1L)).thenReturn(post);
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("删除原因不能为空"))
+                .when(adminPostService).deletePost(anyLong(), eq(1L), eq(""));
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .header("satoken", token).content("{\"reason\":\"\"}"))
