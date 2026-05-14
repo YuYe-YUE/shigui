@@ -146,6 +146,23 @@ git -C /Users/cyrene/Dev/shigui commit -m "feat: add AuditRecord entity, mapper,
 - Modify: `backend/src/main/java/com/shigui/controller/AdminController.java`
 - Modify: `backend/src/test/java/com/shigui/controller/AdminControllerTest.java`
 
+- [ ] **Step 0: 修复 SaToken 管理员/用户 ID 碰撞**
+
+修改 `AdminUserServiceImpl.login()`，管理员 ID 偏移 10,000,000 存入 SaToken，避免和用户 ID 碰撞：
+
+```java
+// 原有: StpUtil.login(admin.getId());
+StpUtil.login(admin.getId() + 10_000_000L);
+```
+
+同时修改 `AdminUserServiceTest.login_correctCredentials_returnsToken` 测试——因为 `StpUtil.login()` 现在需要 `MockedStatic` 才能工作。当前测试已用 `MockedStatic<StpUtil>` 处理（S1 已有），只需确认 `StpUtil.login()` 被调用时传的是 `admin.getId() + 10_000_000L`。
+
+更新已有的 `AdminUserServiceTest` 测试断言：
+```java
+// 在 login_correctCredentials_returnsToken 测试中验证
+verify(() -> StpUtil.login(1L + 10_000_000L));
+```
+
 - [ ] **Step 1: 编写 Service 测试**
 
 创建 `backend/src/test/java/com/shigui/service/AuditRecordServiceTest.java`：
@@ -228,64 +245,52 @@ void listPosts_notLoggedIn_returns401() throws Exception {
 
 @Test
 void listPosts_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     when(lostFoundPostService.page(any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10));
-
     mockMvc.perform(get("/api/admin/posts").header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 
 @Test
 void postDetail_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     LostFoundPost post = new LostFoundPost();
     post.setId(1L);
     post.setTitle("test");
     when(lostFoundPostService.getById(1L)).thenReturn(post);
-
     mockMvc.perform(get("/api/admin/posts/1").header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 
 @Test
 void approvePost_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     LostFoundPost post = new LostFoundPost();
     post.setId(1L);
     post.setStatus("PENDING_AUDIT");
     when(lostFoundPostService.getById(1L)).thenReturn(post);
-
     mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
             .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 
 @Test
 void approvePost_alreadyDeleted_returns400() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     LostFoundPost post = new LostFoundPost();
     post.setId(1L);
     post.setStatus("PENDING_AUDIT");
     post.setDeleted(1);
     when(lostFoundPostService.getById(1L)).thenReturn(post);
-
     mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
             .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
 }
 
 @Test
 void deletePost_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     LostFoundPost post = new LostFoundPost();
     post.setId(1L);
     when(lostFoundPostService.getById(1L)).thenReturn(post);
-
     mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("satoken", token).content("{\"reason\":\"违规\"}"))
@@ -294,24 +299,20 @@ void deletePost_loggedIn_returns200() throws Exception {
 
 @Test
 void deletePost_noReason_returns400() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     LostFoundPost post = new LostFoundPost();
     post.setId(1L);
     when(lostFoundPostService.getById(1L)).thenReturn(post);
-
     mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("satoken", token).content("{\"reason\":\"\"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
 }
 
-private String getAdminToken() throws Exception {
-    String body = mockMvc.perform(post("/api/admin/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
-            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-    return body.replaceAll(".*\\\"data\\\":\\\"([^\\\"]+)\\\".*", "$1");
+private String getAdminToken() {
+    // 直接创建 SaToken 会话（绕开 AdminController login 的 mock 限制）
+    cn.dev33.satoken.stp.StpUtil.login(1L + 10_000_000L);
+    return cn.dev33.satoken.stp.StpUtil.getTokenValue();
 }
 ```
 
@@ -399,7 +400,7 @@ public Result<LostFoundPost> postDetail(@PathVariable Long id) {
  */
 @PostMapping("/posts/{id}/approve")
 public Result<Void> approvePost(@PathVariable Long id) {
-    Long adminId = StpUtil.getLoginIdAsLong();
+    Long adminId = StpUtil.getLoginIdAsLong() - 10_000_000L;
     LostFoundPost post = lostFoundPostService.getById(id);
     if (post == null) {
         return Result.fail(404, "单据不存在");
@@ -421,7 +422,7 @@ public Result<Void> approvePost(@PathVariable Long id) {
  */
 @DeleteMapping("/posts/{id}")
 public Result<Void> deletePost(@PathVariable Long id, @RequestBody Map<String, String> body) {
-    Long adminId = StpUtil.getLoginIdAsLong();
+    Long adminId = StpUtil.getLoginIdAsLong() - 10_000_000L;
     LostFoundPost post = lostFoundPostService.getById(id);
     if (post == null) {
         return Result.fail(404, "单据不存在");
@@ -532,36 +533,24 @@ public Result<Void> unbanUser(@PathVariable Long id) {
 ```java
 @Test
 void listUsers_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
     when(appUserService.page(any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10));
-
-    mockMvc.perform(get("/api/admin/users")
-                    .header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+    mockMvc.perform(get("/api/admin/users").header("satoken", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 
 @Test
 void banUser_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
-
-    mockMvc.perform(put("/api/admin/users/1/ban")
-                    .header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+    mockMvc.perform(put("/api/admin/users/1/ban").header("satoken", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 
 @Test
 void unbanUser_loggedIn_returns200() throws Exception {
-    when(adminUserService.login(anyString(), anyString())).thenReturn("token");
     String token = getAdminToken();
-
-    mockMvc.perform(put("/api/admin/users/1/unban")
-                    .header("satoken", token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+    mockMvc.perform(put("/api/admin/users/1/unban").header("satoken", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
 }
 ```
 
