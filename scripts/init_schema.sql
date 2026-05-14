@@ -84,6 +84,7 @@ CREATE TABLE match_record (
     lost_post_id BIGINT NOT NULL,
     found_post_id BIGINT NOT NULL,
     score DECIMAL(5,4) DEFAULT 0 COMMENT '匹配得分 0-1',
+    reason TEXT COMMENT 'AI 匹配理由',
     deleted TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_lost_post (lost_post_id),
