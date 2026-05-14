@@ -6,7 +6,9 @@
     "pages/detail/detail",
     "pages/publish-form/publish-form",
     "pages/chat/chat",
-    "pages/map/map"
+    "pages/map/map",
+    "pages/matches/matches",
+    "pages/notifications/notifications"
   ],
   "window": {
     "navigationBarBackgroundColor": "#00573D",

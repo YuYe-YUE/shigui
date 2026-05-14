@@ -53,5 +53,13 @@ Page({
 
   goMyPosts() {
     wx.navigateTo({ url: '/pages/index/index?tab=mine' })
+  },
+
+  goMatches() {
+    wx.navigateTo({ url: '/pages/matches/matches' })
+  },
+
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/notifications' })
   }
 })

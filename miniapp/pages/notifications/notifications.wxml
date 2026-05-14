@@ -1,0 +1,12 @@
+<view class="container">
+  <view class="list">
+    <view class="notification-card {{item.isRead ? 'read' : ''}}" wx:for="{{notifications}}" wx:key="id" data-id="{{item.relatedId}}" bindtap="goMatch">
+      <view class="dot" wx:if="{{!item.isRead}}"></view>
+      <view class="content">
+        <view class="title">{{item.title}}</view>
+        <view class="desc">{{item.content}}</view>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{notifications.length === 0}}" class="empty">暂无提醒</view>
+</view>

@@ -1,0 +1,19 @@
+<view class="container">
+  <view class="list">
+    <view class="match-card" wx:for="{{matches}}" wx:key="id">
+      <view class="score-badge">匹配度 {{item.score}}</view>
+      <view class="reason">{{item.reason}}</view>
+      <view class="posts">
+        <view class="post-item" wx:if="{{item.myPost}}" data-id="{{item.myPost.id}}" bindtap="goDetail">
+          <text class="label">我的</text>
+          <text>{{item.myPost.title}}</text>
+        </view>
+        <view class="post-item" wx:if="{{item.matchedPost}}" data-id="{{item.matchedPost.id}}" bindtap="goDetail">
+          <text class="label">匹配</text>
+          <text>{{item.matchedPost.title}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{matches.length === 0}}" class="empty">暂无匹配记录</view>
+</view>

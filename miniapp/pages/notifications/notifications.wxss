@@ -1,0 +1,8 @@
+.container { min-height: 100vh; background: var(--bg-color); padding: 24rpx; }
+.notification-card { background: var(--white); border-radius: 20rpx; padding: 28rpx; margin-bottom: 16rpx; box-shadow: var(--shadow); display: flex; align-items: flex-start; position: relative; }
+.notification-card.read { opacity: 0.6; }
+.dot { width: 16rpx; height: 16rpx; background: #FF5252; border-radius: 50%; margin-right: 20rpx; margin-top: 8rpx; flex-shrink: 0; }
+.content { flex: 1; }
+.title { font-size: 30rpx; font-weight: 600; margin-bottom: 10rpx; color: var(--text-main); }
+.desc { font-size: 26rpx; color: var(--text-second); line-height: 1.5; }
+.empty { text-align: center; color: var(--text-light); padding: 160rpx 0; font-size: 28rpx; }
