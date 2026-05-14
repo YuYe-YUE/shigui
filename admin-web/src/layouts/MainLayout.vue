@@ -8,6 +8,7 @@ const auth = useAuthStore()
 const menuItems = [
   { path: '/dashboard', title: '仪表盘' },
   { path: '/posts', title: '内容审核' },
+  { path: '/users', title: '用户管理' },
 ]
 </script>
 
