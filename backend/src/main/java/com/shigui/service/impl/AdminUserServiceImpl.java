@@ -22,7 +22,7 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         if (admin == null || !verifyPassword(password, admin.getPasswordHash())) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
-        StpUtil.login(admin.getId());
+        StpUtil.login(admin.getId() + 10_000_000L);
         return StpUtil.getTokenValue();
     }
 
