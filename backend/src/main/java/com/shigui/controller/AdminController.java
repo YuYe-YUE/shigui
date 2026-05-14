@@ -2,6 +2,7 @@ package com.shigui.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.common.Result;
+import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
@@ -90,6 +91,29 @@ public class AdminController {
         post.setDeleted(1);
         lostFoundPostService.updateById(post);
         auditRecordService.logDelete(adminId, id, reason);
+        return Result.ok();
+    }
+
+    @GetMapping("/users")
+    public Result<Page<AppUser>> listUsers(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AppUser> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(status != null && !status.isEmpty(), AppUser::getStatus, status);
+        return Result.ok(appUserService.page(new Page<>(page, size), wrapper));
+    }
+
+    @PutMapping("/users/{id}/ban")
+    public Result<Void> banUser(@PathVariable Long id) {
+        appUserService.banUser(id);
+        return Result.ok();
+    }
+
+    @PutMapping("/users/{id}/unban")
+    public Result<Void> unbanUser(@PathVariable Long id) {
+        appUserService.unbanUser(id);
         return Result.ok();
     }
 }

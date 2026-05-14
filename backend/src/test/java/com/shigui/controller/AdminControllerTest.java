@@ -2,6 +2,7 @@ package com.shigui.controller;
 
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.AdminUserService;
+import com.shigui.service.AppUserService;
 import com.shigui.service.AuditRecordService;
 import com.shigui.service.LostFoundPostService;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +41,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AuditRecordService auditRecordService;
+
+    @MockitoBean
+    private AppUserService appUserService;
 
     private String getAdminToken() {
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -142,5 +147,27 @@ class AdminControllerTest {
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .header("satoken", token).content("{\"reason\":\"\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void listUsers_loggedIn_returns200() throws Exception {
+        String token = getAdminToken();
+        when(appUserService.page(any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10));
+        mockMvc.perform(get("/api/admin/users").header("satoken", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void banUser_loggedIn_returns200() throws Exception {
+        String token = getAdminToken();
+        mockMvc.perform(put("/api/admin/users/1/ban").header("satoken", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void unbanUser_loggedIn_returns200() throws Exception {
+        String token = getAdminToken();
+        mockMvc.perform(put("/api/admin/users/1/unban").header("satoken", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
     }
 }

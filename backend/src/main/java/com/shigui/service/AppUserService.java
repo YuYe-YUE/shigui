@@ -14,4 +14,8 @@ public interface AppUserService extends IService<AppUser> {
      * 获取用户；不存在时抛业务异常，让统一异常处理返回 400。
      */
     AppUser getByIdOrThrow(Long userId);
+
+    void banUser(Long userId);
+
+    void unbanUser(Long userId);
 }

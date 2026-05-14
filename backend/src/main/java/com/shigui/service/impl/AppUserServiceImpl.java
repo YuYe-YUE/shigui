@@ -38,4 +38,18 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         }
         return user;
     }
+
+    @Override
+    public void banUser(Long userId) {
+        AppUser user = getByIdOrThrow(userId);
+        user.setStatus("BANNED");
+        updateById(user);
+    }
+
+    @Override
+    public void unbanUser(Long userId) {
+        AppUser user = getByIdOrThrow(userId);
+        user.setStatus("NORMAL");
+        updateById(user);
+    }
 }
