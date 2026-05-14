@@ -34,6 +34,7 @@ Page({
             latitude: p.latitude,
             longitude: p.longitude,
             title: p.title,
+            postType: p.postType,
             width: 30,
             height: 30,
             callout: {

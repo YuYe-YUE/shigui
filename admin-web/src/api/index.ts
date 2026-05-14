@@ -15,6 +15,7 @@ api.interceptors.response.use(
   (res) => {
     if (res.data.code !== 200) {
       ElMessage.error(res.data.message || '请求失败')
+      return Promise.reject(new Error(res.data.message || '请求失败'))
     }
     return res
   },

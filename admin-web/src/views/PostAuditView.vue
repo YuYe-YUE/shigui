@@ -7,6 +7,7 @@ const posts = ref<any[]>([])
 const activeTab = ref('PENDING_AUDIT')
 const page = ref(1)
 const total = ref(0)
+const loading = ref(false)
 
 onMounted(() => loadPosts())
 
@@ -17,43 +18,50 @@ function switchTab(tab: string) {
 }
 
 async function loadPosts() {
-  const status = activeTab.value === 'all' ? undefined : activeTab.value
-  const res = await api.get('/api/admin/posts', { params: { page: page.value, size: 10, status } })
-  posts.value = res.data.data.records || []
-  total.value = res.data.data.total || 0
+  loading.value = true
+  try {
+    const status = activeTab.value === 'all' ? undefined : activeTab.value
+    const res = await api.get('/api/admin/posts', { params: { page: page.value, size: 10, status } })
+    posts.value = res.data.data.records || []
+    total.value = res.data.data.total || 0
+  } catch {
+    /* ElMessage.error already shown by interceptor */
+  } finally {
+    loading.value = false
+  }
 }
 
 async function viewDetail(id: number) {
-  const res = await api.get(`/api/admin/posts/${id}`)
-  const post = res.data.data
-  ElMessageBox.alert(
-    `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}`,
-    post.title,
-    { confirmButtonText: '关闭' }
-  )
+  try {
+    const res = await api.get(`/api/admin/posts/${id}`)
+    const post = res.data.data
+    ElMessageBox.alert(
+      `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}`,
+      post.title,
+      { confirmButtonText: '关闭' }
+    )
+  } catch {
+    /* error already shown */
+  }
 }
 
 async function approve(id: number) {
   try {
     await ElMessageBox.confirm('确认审核通过该单据？通过后将进入匹配池。', '审核通过', { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'success' })
-    const res = await api.post(`/api/admin/posts/${id}/approve`)
-    if (res.data.code === 200) {
-      ElMessage.success('审核通过')
-      loadPosts()
-    }
-  } catch { /* 用户取消 */ }
+    await api.post(`/api/admin/posts/${id}/approve`)
+    ElMessage.success('审核通过')
+    loadPosts()
+  } catch { /* 用户取消或接口错误 */ }
 }
 
 async function deletePost(id: number) {
   try {
     await ElMessageBox.confirm('确认删除该单据？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
     const { value: reason } = await ElMessageBox.prompt('请填写删除原因', '删除原因', { confirmButtonText: '确认删除', cancelButtonText: '取消', inputType: 'textarea' })
-    const res = await api.delete(`/api/admin/posts/${id}`, { data: { reason } })
-    if (res.data.code === 200) {
-      ElMessage.success('已删除')
-      loadPosts()
-    }
-  } catch { /* 用户取消 */ }
+    await api.delete(`/api/admin/posts/${id}`, { data: { reason } })
+    ElMessage.success('已删除')
+    loadPosts()
+  } catch { /* 用户取消或接口错误 */ }
 }
 </script>
 
@@ -65,7 +73,7 @@ async function deletePost(id: number) {
       <el-tab-pane label="全部" name="all" />
     </el-tabs>
 
-    <el-table :data="posts" stripe>
+    <el-table :data="posts" stripe v-loading="loading">
       <el-table-column prop="title" label="标题" min-width="160" />
       <el-table-column prop="itemCategory" label="品类" width="80" />
       <el-table-column prop="postType" label="类型" width="70">

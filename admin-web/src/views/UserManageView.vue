@@ -6,29 +6,37 @@ import api from '../api'
 const users = ref<any[]>([])
 const page = ref(1)
 const total = ref(0)
+const loading = ref(false)
 
 onMounted(() => loadUsers())
 
 async function loadUsers() {
-  const res = await api.get('/api/admin/users', { params: { page: page.value, size: 10 } })
-  users.value = res.data.data.records || []
-  total.value = res.data.data.total || 0
+  loading.value = true
+  try {
+    const res = await api.get('/api/admin/users', { params: { page: page.value, size: 10 } })
+    users.value = res.data.data.records || []
+    total.value = res.data.data.total || 0
+  } catch {
+    /* interceptor shows error */
+  } finally {
+    loading.value = false
+  }
 }
 
 async function banUser(id: number) {
-  const res = await api.put(`/api/admin/users/${id}/ban`)
-  if (res.data.code === 200) {
+  try {
+    await api.put(`/api/admin/users/${id}/ban`)
     ElMessage.success('已封禁')
     loadUsers()
-  }
+  } catch { /* interceptor shows error */ }
 }
 
 async function unbanUser(id: number) {
-  const res = await api.put(`/api/admin/users/${id}/unban`)
-  if (res.data.code === 200) {
+  try {
+    await api.put(`/api/admin/users/${id}/unban`)
     ElMessage.success('已解封')
     loadUsers()
-  }
+  } catch { /* interceptor shows error */ }
 }
 </script>
 
@@ -36,7 +44,7 @@ async function unbanUser(id: number) {
   <div>
     <h2 style="margin-bottom:16px">用户管理</h2>
 
-    <el-table :data="users" stripe>
+    <el-table :data="users" stripe v-loading="loading">
       <el-table-column prop="nickname" label="昵称" min-width="120" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">

@@ -55,11 +55,23 @@ Page({
     wx.navigateTo({ url: '/pages/index/index?tab=mine' })
   },
 
+  goMyLostPosts() {
+    wx.navigateTo({ url: '/pages/index/index?tab=mine&type=lost' })
+  },
+
+  goMyFoundPosts() {
+    wx.navigateTo({ url: '/pages/index/index?tab=mine&type=found' })
+  },
+
   goMatches() {
     wx.navigateTo({ url: '/pages/matches/matches' })
   },
 
   goNotifications() {
     wx.navigateTo({ url: '/pages/notifications/notifications' })
+  },
+
+  onTapStub(e) {
+    wx.showToast({ title: e.currentTarget.dataset.msg, icon: 'none' })
   }
 })

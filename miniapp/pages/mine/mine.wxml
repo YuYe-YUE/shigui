@@ -20,11 +20,11 @@
   </view>
 
   <view class="quick-actions">
-    <view class="action-item" bindtap="goMyPosts">
+    <view class="action-item" bindtap="goMyLostPosts">
       <image class="action-icon" src="/assets/icons/post-lost.svg" />
       <text>我的寻物</text>
     </view>
-    <view class="action-item" bindtap="goMyPosts">
+    <view class="action-item" bindtap="goMyFoundPosts">
       <image class="action-icon" src="/assets/icons/post-found.svg" />
       <text>我的招领</text>
     </view>
@@ -35,7 +35,7 @@
   </view>
 
   <view class="menu-group">
-    <view class="menu-item">
+    <view class="menu-item" bindtap="onTapStub" data-msg="认领记录功能开发中">
       <image class="menu-icon" src="/assets/icons/doc.svg" />
       <text class="menu-text">认领记录</text>
       <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
@@ -49,12 +49,12 @@
   </view>
 
   <view class="menu-group">
-    <view class="menu-item">
+    <view class="menu-item" bindtap="onTapStub" data-msg="系统设置功能开发中">
       <image class="menu-icon" src="/assets/icons/settings.svg" />
       <text class="menu-text">系统设置</text>
       <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
     </view>
-    <view class="menu-item">
+    <view class="menu-item" bindtap="onTapStub" data-msg="拾归 v1.0 校园失物招领系统 中山大学第19组">
       <image class="menu-icon" src="/assets/icons/info.svg" />
       <text class="menu-text">关于拾归</text>
       <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
