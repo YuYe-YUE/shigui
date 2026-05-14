@@ -1,6 +1,7 @@
 package com.shigui.common;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,6 +19,15 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<Void> handleNotLogin(NotLoginException e) {
         return Result.fail(401, "未登录或登录已过期");
+    }
+
+    /**
+     * 权限不足（非管理员调管理员接口）返回 403。
+     */
+    @ExceptionHandler(NotPermissionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleNotPermission(NotPermissionException e) {
+        return Result.fail(403, "权限不足");
     }
 
     /**

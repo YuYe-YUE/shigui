@@ -87,6 +87,25 @@ class AdminControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    private String getUserToken() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        try {
+            cn.dev33.satoken.servlet.util.SaTokenContextJakartaServletUtil.setContext(request, response);
+            cn.dev33.satoken.stp.StpUtil.login(1L);  // 普通用户，ID < 10_000_000
+            return cn.dev33.satoken.stp.StpUtil.getTokenValue();
+        } finally {
+            cn.dev33.satoken.servlet.util.SaTokenContextJakartaServletUtil.clearContext();
+        }
+    }
+
+    @Test
+    void listPosts_userToken_returns403() throws Exception {
+        String token = getUserToken();
+        mockMvc.perform(get("/api/admin/posts").header("satoken", token))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     void listPosts_loggedIn_returns200() throws Exception {
         String token = getAdminToken();

@@ -1,5 +1,6 @@
 package com.shigui.controller;
 
+import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.common.Result;
 import com.shigui.entity.AppUser;
@@ -17,6 +18,8 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 public class AdminController {
 
+    private static final long ADMIN_ID_OFFSET = 10_000_000L;
+
     private final AdminUserService adminUserService;
     private final LostFoundPostService lostFoundPostService;
     private final AuditRecordService auditRecordService;
@@ -30,6 +33,15 @@ public class AdminController {
         this.lostFoundPostService = lostFoundPostService;
         this.auditRecordService = auditRecordService;
         this.appUserService = appUserService;
+    }
+
+    /**
+     * 校验当前登录是否为管理员。普通用户 token 会抛出 NotPermissionException → 403。
+     */
+    private void requireAdmin() {
+        if (StpUtil.getLoginIdAsLong() < ADMIN_ID_OFFSET) {
+            throw new NotPermissionException("需要管理员权限");
+        }
     }
 
     /**
@@ -51,6 +63,7 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status) {
+        requireAdmin();
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<LostFoundPost> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         wrapper.eq(status != null && !status.isEmpty(), LostFoundPost::getStatus, status);
@@ -62,6 +75,7 @@ public class AdminController {
 
     @GetMapping("/posts/{id}")
     public Result<LostFoundPost> postDetail(@PathVariable Long id) {
+        requireAdmin();
         LostFoundPost post = lostFoundPostService.getById(id);
         if (post == null) return Result.fail(404, "单据不存在");
         return Result.ok(post);
@@ -69,7 +83,8 @@ public class AdminController {
 
     @PostMapping("/posts/{id}/approve")
     public Result<Void> approvePost(@PathVariable Long id) {
-        Long adminId = StpUtil.getLoginIdAsLong() - 10_000_000L;
+        requireAdmin();
+        Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
         LostFoundPost post = lostFoundPostService.getById(id);
         if (post == null) return Result.fail(404, "单据不存在");
         if (post.getDeleted() != null && post.getDeleted() == 1) return Result.fail(400, "单据已被删除");
@@ -82,7 +97,8 @@ public class AdminController {
 
     @DeleteMapping("/posts/{id}")
     public Result<Void> deletePost(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        Long adminId = StpUtil.getLoginIdAsLong() - 10_000_000L;
+        requireAdmin();
+        Long adminId = StpUtil.getLoginIdAsLong() - ADMIN_ID_OFFSET;
         LostFoundPost post = lostFoundPostService.getById(id);
         if (post == null) return Result.fail(404, "单据不存在");
         if (post.getDeleted() != null && post.getDeleted() == 1) return Result.fail(400, "单据已被删除");
@@ -99,6 +115,7 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status) {
+        requireAdmin();
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AppUser> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         wrapper.eq(status != null && !status.isEmpty(), AppUser::getStatus, status);
@@ -107,12 +124,14 @@ public class AdminController {
 
     @PutMapping("/users/{id}/ban")
     public Result<Void> banUser(@PathVariable Long id) {
+        requireAdmin();
         appUserService.banUser(id);
         return Result.ok();
     }
 
     @PutMapping("/users/{id}/unban")
     public Result<Void> unbanUser(@PathVariable Long id) {
+        requireAdmin();
         appUserService.unbanUser(id);
         return Result.ok();
     }
