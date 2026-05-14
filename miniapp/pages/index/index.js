@@ -13,13 +13,28 @@ Page({
   },
 
   onLoad(options) {
-    if (options && options.tab === 'mine') {
-      this.setData({ mode: 'mine', myPostType: (options.type || '').toUpperCase() })
-      if (options.type) {
-        this.setData({ activeTab: options.type })
-      }
-    }
+    this.checkMode(options)
     this.loadPosts()
+  },
+
+  onShow() {
+    // switchTab 不会传参数，从 globalData 读取
+    this.checkMode()
+    this.loadPosts()
+  },
+
+  checkMode(options) {
+    const tab = (options && options.tab) || app.globalData.indexTab
+    if (tab === 'mine') {
+      const type = (options && options.type) || app.globalData.indexType || ''
+      this.setData({ mode: 'mine', myPostType: type.toUpperCase(), page: 1, posts: [] })
+      if (type) this.setData({ activeTab: type })
+    } else {
+      this.setData({ mode: 'public', myPostType: '', page: 1, posts: [] })
+    }
+    // 消费后清除
+    app.globalData.indexTab = ''
+    app.globalData.indexType = ''
   },
 
   onPullDownRefresh() {
