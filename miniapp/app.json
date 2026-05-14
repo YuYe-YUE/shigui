@@ -8,7 +8,8 @@
     "pages/chat/chat",
     "pages/map/map",
     "pages/matches/matches",
-    "pages/notifications/notifications"
+    "pages/notifications/notifications",
+    "pages/my-posts/my-posts"
   ],
   "window": {
     "navigationBarBackgroundColor": "#00573D",

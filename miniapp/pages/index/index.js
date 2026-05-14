@@ -7,34 +7,11 @@ Page({
     activeCategory: '全部',
     activeTab: 'all',
     page: 1,
-    keyword: '',
-    mode: 'public',   // 'public' | 'mine'
-    myPostType: ''    // 'LOST' | 'FOUND' | ''
+    keyword: ''
   },
 
-  onLoad(options) {
-    this.checkMode(options)
+  onLoad() {
     this.loadPosts()
-  },
-
-  onShow() {
-    // switchTab 不会传参数，从 globalData 读取
-    this.checkMode()
-    this.loadPosts()
-  },
-
-  checkMode(options) {
-    const tab = (options && options.tab) || app.globalData.indexTab
-    if (tab === 'mine') {
-      const type = (options && options.type) || app.globalData.indexType || ''
-      this.setData({ mode: 'mine', myPostType: type.toUpperCase(), page: 1, posts: [] })
-      if (type) this.setData({ activeTab: type })
-    } else {
-      this.setData({ mode: 'public', myPostType: '', page: 1, posts: [] })
-    }
-    // 消费后清除
-    app.globalData.indexTab = ''
-    app.globalData.indexType = ''
   },
 
   onPullDownRefresh() {
@@ -48,19 +25,12 @@ Page({
   },
 
   loadPosts() {
-    const { activeCategory, activeTab, page, keyword, mode, myPostType } = this.data
+    const { activeCategory, activeTab, page, keyword } = this.data
     const token = app.globalData.token
-    let url
-
-    if (mode === 'mine') {
-      url = `${app.globalData.baseUrl}/api/posts/mine?page=${page}&size=10`
-      if (myPostType) url += `&postType=${myPostType}`
-    } else {
-      url = `${app.globalData.baseUrl}/api/posts?page=${page}&size=10`
-      if (activeTab !== 'all') url += `&postType=${activeTab.toUpperCase()}`
-      if (activeCategory !== '全部') url += `&itemCategory=${activeCategory}`
-      if (keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`
-    }
+    let url = `${app.globalData.baseUrl}/api/posts?page=${page}&size=10`
+    if (activeTab !== 'all') url += `&postType=${activeTab.toUpperCase()}`
+    if (activeCategory !== '全部') url += `&itemCategory=${activeCategory}`
+    if (keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`
 
     return new Promise((resolve) => {
       wx.request({

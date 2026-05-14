@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="list" wx:if="{{posts.length > 0}}">
+    <post-card
+      wx:for="{{posts}}"
+      wx:key="id"
+      item="{{item}}"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
+    ></post-card>
+  </view>
+  <view wx:else class="empty">
+    <image class="empty-icon" src="/assets/icons/empty.svg" />
+    <view>暂无记录</view>
+  </view>
+</view>

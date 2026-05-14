@@ -52,21 +52,15 @@ Page({
   },
 
   goMyPosts() {
-    app.globalData.indexTab = 'mine'
-    app.globalData.indexType = ''
-    wx.switchTab({ url: '/pages/index/index' })
+    wx.navigateTo({ url: '/pages/my-posts/my-posts' })
   },
 
   goMyLostPosts() {
-    app.globalData.indexTab = 'mine'
-    app.globalData.indexType = 'lost'
-    wx.switchTab({ url: '/pages/index/index' })
+    wx.navigateTo({ url: '/pages/my-posts/my-posts?type=lost' })
   },
 
   goMyFoundPosts() {
-    app.globalData.indexTab = 'mine'
-    app.globalData.indexType = 'found'
-    wx.switchTab({ url: '/pages/index/index' })
+    wx.navigateTo({ url: '/pages/my-posts/my-posts?type=found' })
   },
 
   goMatches() {
