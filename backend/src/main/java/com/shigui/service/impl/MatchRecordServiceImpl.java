@@ -9,6 +9,7 @@ import com.shigui.dto.PostResponse;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.entity.MatchRecord;
 import com.shigui.mapper.MatchRecordMapper;
+import com.shigui.config.AiMatchProperties;
 import com.shigui.service.AiMatchClient;
 import com.shigui.service.LostFoundPostService;
 import com.shigui.service.MatchRecordService;
@@ -26,20 +27,24 @@ import java.util.stream.Collectors;
 
 @Service
 public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, MatchRecord> implements MatchRecordService {
-    private static final BigDecimal THRESHOLD = new BigDecimal("0.70");
-    private static final int MAX_CANDIDATES = 20;
-    private static final int MAX_RESULTS = 5;
 
     private final LostFoundPostService lostFoundPostService;
     private final AiMatchClient aiMatchClient;
     private final NotificationService notificationService;
+    private final AiMatchProperties properties;
+
+    private BigDecimal threshold() { return properties.thresholdValue(); }
+    private int maxCandidates() { return properties.getMaxCandidates(); }
+    private int maxResults() { return properties.getMaxResults(); }
 
     public MatchRecordServiceImpl(LostFoundPostService lostFoundPostService,
                                   AiMatchClient aiMatchClient,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  AiMatchProperties properties) {
         this.lostFoundPostService = lostFoundPostService;
         this.aiMatchClient = aiMatchClient;
         this.notificationService = notificationService;
+        this.properties = properties;
     }
 
     @Override
@@ -51,35 +56,47 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
         }
         List<LostFoundPost> candidates = loadCandidates(target).stream()
                 .sorted(Comparator.comparing(c -> ruleScore(target, c), Comparator.reverseOrder()))
-                .limit(MAX_CANDIDATES)
+                .limit(maxCandidates())
                 .toList();
         if (candidates.isEmpty()) return;
         AiMatchResult aiResult = callAi(target, candidates);
         Map<Long, LostFoundPost> candidateMap = candidates.stream().collect(Collectors.toMap(LostFoundPost::getId, c -> c));
         int created = 0;
         for (AiMatchResult.Decision decision : aiResult.getMatches()) {
-            if (created >= MAX_RESULTS) break;
+            if (created >= maxResults()) break;
             LostFoundPost candidate = candidateMap.get(decision.getCandidatePostId());
             if (candidate == null || !Boolean.TRUE.equals(decision.getMatched())) continue;
             BigDecimal score = normalize(decision.getScore());
-            if (score.compareTo(THRESHOLD) < 0) continue;
+            if (score.compareTo(threshold()) < 0) continue;
             if (createMatch(target, candidate, score, sanitize(decision.getReason()))) created++;
         }
     }
 
     @Override
     public Page<MatchResponse> listMine(Long userId, int page, int size) {
+        // 先查用户自己的 postId，再数据库层过滤匹配记录
+        List<Long> myPostIds = lostFoundPostService.list(
+                new LambdaQueryWrapper<LostFoundPost>()
+                        .eq(LostFoundPost::getUserId, userId)
+                        .eq(LostFoundPost::getDeleted, 0))
+                .stream().map(LostFoundPost::getId).toList();
+        if (myPostIds.isEmpty()) {
+            Page<MatchResponse> empty = new Page<>(page, size);
+            empty.setRecords(List.of());
+            empty.setTotal(0);
+            return empty;
+        }
         LambdaQueryWrapper<MatchRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MatchRecord::getDeleted, 0);
+        wrapper.and(w -> w.in(MatchRecord::getLostPostId, myPostIds).or().in(MatchRecord::getFoundPostId, myPostIds));
         wrapper.orderByDesc(MatchRecord::getCreatedAt);
         Page<MatchRecord> entityPage = page(new Page<>(page, size), wrapper);
         List<MatchResponse> responses = entityPage.getRecords().stream()
                 .map(r -> toResponse(r, userId))
-                .filter(r -> r.getMyPost() != null)
                 .toList();
         Page<MatchResponse> result = new Page<>(page, size);
         result.setRecords(responses);
-        result.setTotal(responses.size());
+        result.setTotal(entityPage.getTotal());
         return result;
     }
 
@@ -183,7 +200,12 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
     }
 
     private String sanitize(String value) {
-        return value == null ? "" : value.replaceAll("\\d{3,}", "***");
+        if (value == null) return "";
+        // 脱敏：替换数字、中文描述性私密特征为通用提示
+        String s = value.replaceAll("\\d{4,}", "***");
+        s = s.replaceAll("[后前]\\s*[三四五六七八九两]?\\s*位\\s*[是为有]?\\s*\\S{0,4}", "特征匹配");
+        s = s.replaceAll("卡号|学号|工号|尾号|编号", "");
+        return s.length() > 80 ? s.substring(0, 80) + "..." : s;
     }
 
     private BigDecimal normalize(BigDecimal value) {

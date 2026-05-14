@@ -4,25 +4,31 @@ import com.shigui.config.AiMatchProperties;
 import com.shigui.dto.AiMatchResult;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.impl.OpenAiCompatibleMatchClient;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class OpenAiCompatibleMatchClientTest {
 
+    private static String value(String name) {
+        String v = System.getProperty(name);
+        if (v != null && !v.isBlank()) return v;
+        v = System.getenv(name);
+        return (v != null && !v.isBlank()) ? v : null;
+    }
+
     @Test
     void rankMatches_realApi_returnsStrongMatchAndRejectsNoise() {
-        String baseUrl = System.getenv("AI_MATCH_BASE_URL");
-        String apiKey = System.getenv("AI_MATCH_API_KEY");
-        String model = System.getenv("AI_MATCH_MODEL");
-        Assumptions.assumeTrue(baseUrl != null && !baseUrl.isBlank()
-                && apiKey != null && !apiKey.isBlank()
-                && model != null && !model.isBlank(),
-                "Skipped: set AI_MATCH_BASE_URL, AI_MATCH_API_KEY, AI_MATCH_MODEL to run");
+        String baseUrl = value("AI_MATCH_BASE_URL");
+        String apiKey = value("AI_MATCH_API_KEY");
+        String model = value("AI_MATCH_MODEL");
+        if (baseUrl == null || apiKey == null || model == null) {
+            fail("AI_MATCH_BASE_URL, AI_MATCH_API_KEY, AI_MATCH_MODEL must be set via -D or env");
+        }
 
         AiMatchProperties properties = new AiMatchProperties();
         properties.setEnabled(true);
