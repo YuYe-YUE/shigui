@@ -78,7 +78,7 @@ class LostFoundPostControllerTest {
         response.setTitle("丢失校园卡");
         response.setStatus("PENDING_AUDIT");
         when(appUserService.loginByWechat(anyString())).thenReturn(1L);
-        when(lostFoundPostService.getDetail(10L)).thenReturn(response);
+        when(lostFoundPostService.getDetail(eq(10L), anyLong())).thenReturn(response);
 
         String token = loginAndGetToken();
 

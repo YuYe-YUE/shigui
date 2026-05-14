@@ -55,9 +55,13 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
     }
 
     @Override
-    public PostResponse getDetail(Long postId) {
+    public PostResponse getDetail(Long postId, Long currentUserId) {
         LostFoundPost post = getById(postId);
         if (post == null) {
+            throw new IllegalArgumentException("单据不存在: " + postId);
+        }
+        // 非本人只能看已审核通过的公开单据
+        if (!"MATCHING".equals(post.getStatus()) && !post.getUserId().equals(currentUserId)) {
             throw new IllegalArgumentException("单据不存在: " + postId);
         }
         return toResponse(post);

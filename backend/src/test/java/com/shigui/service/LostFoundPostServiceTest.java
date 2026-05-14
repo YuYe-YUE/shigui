@@ -115,6 +115,7 @@ class LostFoundPostServiceTest {
     void getDetail_existingPost_returnsPostResponseWithoutPrivateFeature() {
         LostFoundPost post = new LostFoundPost();
         post.setId(20L);
+        post.setUserId(20L);  // 本人查看自己的单据
         post.setPostType("LOST");
         post.setTitle("丢失校园卡");
         post.setItemName("校园卡");
@@ -128,7 +129,7 @@ class LostFoundPostServiceTest {
         post.setStatus("PENDING_AUDIT");
         when(lostFoundPostMapper.selectById(20L)).thenReturn(post);
 
-        PostResponse response = lostFoundPostService.getDetail(20L);
+        PostResponse response = lostFoundPostService.getDetail(20L, 20L);
 
         assertThat(response.getId()).isEqualTo(20L);
         assertThat(response.getDescription()).isEqualTo("绿色卡套");
@@ -136,10 +137,24 @@ class LostFoundPostServiceTest {
     }
 
     @Test
+    void getDetail_nonMatching_nonOwner_throwsException() {
+        LostFoundPost post = new LostFoundPost();
+        post.setId(30L);
+        post.setUserId(1L);  // 属于用户1
+        post.setStatus("PENDING_AUDIT");
+        when(lostFoundPostMapper.selectById(30L)).thenReturn(post);
+
+        // 用户2试图查看用户1的待审核单据
+        assertThatThrownBy(() -> lostFoundPostService.getDetail(30L, 2L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("单据不存在");
+    }
+
+    @Test
     void getDetail_missingPost_throwsException() {
         when(lostFoundPostMapper.selectById(404L)).thenReturn(null);
 
-        assertThatThrownBy(() -> lostFoundPostService.getDetail(404L))
+        assertThatThrownBy(() -> lostFoundPostService.getDetail(404L, 1L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("单据不存在");
     }

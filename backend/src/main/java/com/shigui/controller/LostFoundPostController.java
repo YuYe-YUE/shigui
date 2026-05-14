@@ -60,6 +60,7 @@ public class LostFoundPostController {
 
     @GetMapping("/{id}")
     public Result<PostResponse> detail(@PathVariable Long id) {
-        return Result.ok(lostFoundPostService.getDetail(id));
+        Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : 0L;
+        return Result.ok(lostFoundPostService.getDetail(id, currentUserId));
     }
 }

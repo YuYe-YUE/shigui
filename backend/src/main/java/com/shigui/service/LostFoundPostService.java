@@ -8,7 +8,7 @@ import com.shigui.entity.LostFoundPost;
 
 public interface LostFoundPostService extends IService<LostFoundPost> {
     PostResponse publish(Long userId, CreatePostRequest request);
-    PostResponse getDetail(Long postId);
+    PostResponse getDetail(Long postId, Long currentUserId);
 
     Page<PostResponse> listPublic(int page, int size, String postType,
             String itemCategory, String campusArea, String keyword);
