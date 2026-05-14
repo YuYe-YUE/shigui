@@ -4,6 +4,7 @@ import com.shigui.config.AiMatchProperties;
 import com.shigui.dto.AiMatchResult;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.impl.OpenAiCompatibleMatchClient;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -15,11 +16,19 @@ class OpenAiCompatibleMatchClientTest {
 
     @Test
     void rankMatches_realApi_returnsStrongMatchAndRejectsNoise() {
+        String baseUrl = System.getenv("AI_MATCH_BASE_URL");
+        String apiKey = System.getenv("AI_MATCH_API_KEY");
+        String model = System.getenv("AI_MATCH_MODEL");
+        Assumptions.assumeTrue(baseUrl != null && !baseUrl.isBlank()
+                && apiKey != null && !apiKey.isBlank()
+                && model != null && !model.isBlank(),
+                "Skipped: set AI_MATCH_BASE_URL, AI_MATCH_API_KEY, AI_MATCH_MODEL to run");
+
         AiMatchProperties properties = new AiMatchProperties();
         properties.setEnabled(true);
-        properties.setBaseUrl(requiredEnv("AI_MATCH_BASE_URL"));
-        properties.setApiKey(requiredEnv("AI_MATCH_API_KEY"));
-        properties.setModel(requiredEnv("AI_MATCH_MODEL"));
+        properties.setBaseUrl(baseUrl);
+        properties.setApiKey(apiKey);
+        properties.setModel(model);
         properties.setTimeoutSeconds(30);
         properties.setIncludePrivateFeature(true);
         properties.setMaxCandidates(20);
@@ -46,14 +55,6 @@ class OpenAiCompatibleMatchClientTest {
         assertThat(strong.getScore()).isGreaterThanOrEqualTo(new java.math.BigDecimal("0.70"));
         assertThat(strong.getReason()).isNotBlank();
         assertThat(strong.getReason()).doesNotContain("1234");
-    }
-
-    private static String requiredEnv(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException(name + " is required for ./mvnw test");
-        }
-        return value;
     }
 
     private static LostFoundPost post(Long id, Long userId, String postType, String title, String itemName,

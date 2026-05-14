@@ -26,11 +26,14 @@ class AdminPostServiceTest {
     @Mock
     private AuditRecordService auditRecordService;
 
+    @Mock
+    private MatchRecordService matchRecordService;
+
     private AdminPostService adminPostService;
 
     @BeforeEach
     void setUp() {
-        adminPostService = new AdminPostServiceImpl(lostFoundPostService, auditRecordService);
+        adminPostService = new AdminPostServiceImpl(lostFoundPostService, auditRecordService, matchRecordService);
     }
 
     @Test
@@ -44,6 +47,7 @@ class AdminPostServiceTest {
 
         verify(lostFoundPostService).updateById(post);
         verify(auditRecordService).logApprove(1L, 1L);
+        verify(matchRecordService).generateMatchesForPost(1L);
     }
 
     @Test

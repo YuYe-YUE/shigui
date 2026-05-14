@@ -4,6 +4,7 @@ import com.shigui.entity.LostFoundPost;
 import com.shigui.service.AdminPostService;
 import com.shigui.service.AuditRecordService;
 import com.shigui.service.LostFoundPostService;
+import com.shigui.service.MatchRecordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,11 +13,14 @@ public class AdminPostServiceImpl implements AdminPostService {
 
     private final LostFoundPostService lostFoundPostService;
     private final AuditRecordService auditRecordService;
+    private final MatchRecordService matchRecordService;
 
     public AdminPostServiceImpl(LostFoundPostService lostFoundPostService,
-                                AuditRecordService auditRecordService) {
+                                AuditRecordService auditRecordService,
+                                MatchRecordService matchRecordService) {
         this.lostFoundPostService = lostFoundPostService;
         this.auditRecordService = auditRecordService;
+        this.matchRecordService = matchRecordService;
     }
 
     @Override
@@ -35,6 +39,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         post.setStatus("MATCHING");
         lostFoundPostService.updateById(post);
         auditRecordService.logApprove(adminId, postId);
+        matchRecordService.generateMatchesForPost(postId);
     }
 
     @Override
