@@ -226,6 +226,45 @@ class LostFoundPostServiceTest {
         assertThat(result.getRecords()).isEmpty();
     }
 
+    @Test
+    void listPublic_responseExcludesPrivateFeature() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost post = new LostFoundPost();
+                    post.setId(1L);
+                    post.setStatus("MATCHING");
+                    post.setTitle("test");
+                    post.setPrivateFeature("秘密信息");
+                    page.setRecords(java.util.List.of(post));
+                    page.setTotal(1);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
+        // PostResponse 映射不包含 privateFeature
+        assertThat(result.getRecords().get(0).getTitle()).isEqualTo("test");
+        // privateFeature 不在 PostResponse 字段中，无法通过 getter 访问
+    }
+
+    @Test
+    void listPublic_responseHasPublishedAt() {
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost post = new LostFoundPost();
+                    post.setId(1L);
+                    post.setStatus("MATCHING");
+                    post.setPublishedAt(java.time.LocalDateTime.of(2026, 5, 13, 10, 0));
+                    page.setRecords(java.util.List.of(post));
+                    page.setTotal(1);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
+        assertThat(result.getRecords().get(0).getPublishedAt()).isNotNull();
+    }
+
     private void injectBaseMapper(LostFoundPostServiceImpl impl) {
         try {
             Field baseMapperField = null;

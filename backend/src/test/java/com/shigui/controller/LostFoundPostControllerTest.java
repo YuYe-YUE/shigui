@@ -79,6 +79,7 @@ class LostFoundPostControllerTest {
         response.setPostType("LOST");
         response.setTitle("丢失校园卡");
         response.setStatus("PENDING_AUDIT");
+        response.setPublishedAt(LocalDateTime.of(2026, 5, 13, 10, 0));
         when(appUserService.loginByWechat(anyString())).thenReturn(1L);
         when(lostFoundPostService.getDetail(eq(10L), anyLong())).thenReturn(response);
 
@@ -89,7 +90,9 @@ class LostFoundPostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(10))
-                .andExpect(jsonPath("$.data.title").value("丢失校园卡"));
+                .andExpect(jsonPath("$.data.title").value("丢失校园卡"))
+                // 时间字段存在
+                .andExpect(jsonPath("$.data.publishedAt").exists());
     }
 
     @Test

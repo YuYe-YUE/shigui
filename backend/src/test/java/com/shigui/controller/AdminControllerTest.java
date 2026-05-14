@@ -183,4 +183,27 @@ class AdminControllerTest {
         mockMvc.perform(put("/api/admin/users/1/unban").header("satoken", token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
     }
+
+    @Test
+    void approvePost_userToken_returns403() throws Exception {
+        String token = getUserToken();
+        mockMvc.perform(post("/api/admin/posts/1/approve").header("satoken", token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deletePost_userToken_returns403() throws Exception {
+        String token = getUserToken();
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/posts/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("satoken", token).content("{\"reason\":\"违规\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void banUser_userToken_returns403() throws Exception {
+        String token = getUserToken();
+        mockMvc.perform(put("/api/admin/users/1/ban").header("satoken", token))
+                .andExpect(status().isForbidden());
+    }
 }
