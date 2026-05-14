@@ -28,7 +28,7 @@ public class LostFoundPost {
     private LocalDateTime eventTime;
     private String status;
     private LocalDateTime publishedAt;
-    @TableLogic
+    // 不设 @TableLogic，deleted=1 的记录管理端仍需可见；公开接口里显式 eq(deleted, 0)
     private Integer deleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

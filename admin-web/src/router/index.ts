@@ -22,12 +22,10 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to) => {
   const token = localStorage.getItem('adminToken')
   if (!token && to.path !== '/login') {
-    next('/login')
-  } else {
-    next()
+    return '/login'
   }
 })
 

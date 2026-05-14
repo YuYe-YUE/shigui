@@ -16,15 +16,19 @@ async function loadUsers() {
 }
 
 async function banUser(id: number) {
-  await api.put(`/api/admin/users/${id}/ban`)
-  ElMessage.success('已封禁')
-  loadUsers()
+  const res = await api.put(`/api/admin/users/${id}/ban`)
+  if (res.data.code === 200) {
+    ElMessage.success('已封禁')
+    loadUsers()
+  }
 }
 
 async function unbanUser(id: number) {
-  await api.put(`/api/admin/users/${id}/unban`)
-  ElMessage.success('已解封')
-  loadUsers()
+  const res = await api.put(`/api/admin/users/${id}/unban`)
+  if (res.data.code === 200) {
+    ElMessage.success('已解封')
+    loadUsers()
+  }
 }
 </script>
 

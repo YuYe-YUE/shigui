@@ -7,8 +7,7 @@ const username = ref('')
 const password = ref('')
 
 function handleLogin() {
-  // 具体请求、token 保存和跳转都封装在 auth store 中。
-  auth.login(username.value, password.value)
+  auth.login(username.value, password.value).catch(() => {})
 }
 </script>
 

@@ -9,6 +9,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username: string, password: string) {
     const res = await api.post('/api/admin/login', { username, password })
+    if (res.data.code !== 200 || !res.data.data) {
+      throw new Error(res.data.message || '登录失败')
+    }
     token.value = res.data.data
     localStorage.setItem('adminToken', token.value)
     router.push('/dashboard')

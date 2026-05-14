@@ -16,5 +16,6 @@ public class PostResponse {
     private String locationName;
     private String storageLocation;
     private LocalDateTime eventTime;
+    private LocalDateTime publishedAt;
     private String status;
 }

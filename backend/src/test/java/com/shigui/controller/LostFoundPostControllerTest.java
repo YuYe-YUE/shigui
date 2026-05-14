@@ -41,10 +41,12 @@ class LostFoundPostControllerTest {
 
     @Test
     void publish_notLoggedIn_returns401() throws Exception {
+        // SaToken 不再拦截 /api/posts，Controller 内部校验登录态
         mockMvc.perform(post("/api/posts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validJson()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -91,15 +93,23 @@ class LostFoundPostControllerTest {
     }
 
     @Test
-    void getDetail_notLoggedIn_returns401() throws Exception {
+    void getDetail_notLoggedIn_returnsPostIfMatching() throws Exception {
+        PostResponse response = new PostResponse();
+        response.setId(10L);
+        response.setStatus("MATCHING");
+        when(lostFoundPostService.getDetail(eq(10L), eq(0L))).thenReturn(response);
         mockMvc.perform(get("/api/posts/10"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     @Test
-    void listPublic_noAuth_returns401() throws Exception {
+    void listPublic_noAuth_returns200() throws Exception {
+        when(lostFoundPostService.listPublic(1, 10, null, null, null, null))
+                .thenReturn(new Page<>(1, 10));
         mockMvc.perform(get("/api/posts"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     @Test
@@ -121,7 +131,8 @@ class LostFoundPostControllerTest {
     @Test
     void mine_notLoggedIn_returns401() throws Exception {
         mockMvc.perform(get("/api/posts/mine"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test

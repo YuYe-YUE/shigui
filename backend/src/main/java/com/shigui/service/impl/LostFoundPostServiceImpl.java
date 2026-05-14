@@ -147,6 +147,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         response.setLocationName(post.getLocationName());
         response.setStorageLocation(post.getStorageLocation());
         response.setEventTime(post.getEventTime());
+        response.setPublishedAt(post.getPublishedAt());
         response.setStatus(post.getStatus());
         return response;
     }

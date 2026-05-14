@@ -19,7 +19,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/user/wx-login",
                         "/api/admin/login",
-                        "/api/posts/map"
+                        "/api/posts/map",
+                        "/api/posts/**"
                 );
     }
 }

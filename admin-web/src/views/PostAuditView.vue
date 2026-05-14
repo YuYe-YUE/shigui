@@ -36,9 +36,11 @@ async function viewDetail(id: number) {
 async function approve(id: number) {
   try {
     await ElMessageBox.confirm('确认审核通过该单据？通过后将进入匹配池。', '审核通过', { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'success' })
-    await api.post(`/api/admin/posts/${id}/approve`)
-    ElMessage.success('审核通过')
-    loadPosts()
+    const res = await api.post(`/api/admin/posts/${id}/approve`)
+    if (res.data.code === 200) {
+      ElMessage.success('审核通过')
+      loadPosts()
+    }
   } catch { /* 用户取消 */ }
 }
 
@@ -46,9 +48,11 @@ async function deletePost(id: number) {
   try {
     await ElMessageBox.confirm('确认删除该单据？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
     const { value: reason } = await ElMessageBox.prompt('请填写删除原因', '删除原因', { confirmButtonText: '确认删除', cancelButtonText: '取消', inputType: 'textarea' })
-    await api.delete(`/api/admin/posts/${id}`, { data: { reason } })
-    ElMessage.success('已删除')
-    loadPosts()
+    const res = await api.delete(`/api/admin/posts/${id}`, { data: { reason } })
+    if (res.data.code === 200) {
+      ElMessage.success('已删除')
+      loadPosts()
+    }
   } catch { /* 用户取消 */ }
 }
 </script>

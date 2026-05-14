@@ -20,6 +20,9 @@ public class LostFoundPostController {
 
     @PostMapping
     public Result<PostResponse> publish(@RequestBody CreatePostRequest request) {
+        if (!StpUtil.isLogin()) {
+            return Result.fail(401, "请先登录");
+        }
         Long userId = StpUtil.getLoginIdAsLong();
         return Result.ok(lostFoundPostService.publish(userId, request));
     }
@@ -46,6 +49,9 @@ public class LostFoundPostController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String postType) {
+        if (!StpUtil.isLogin()) {
+            return Result.fail(401, "请先登录");
+        }
         Long userId = StpUtil.getLoginIdAsLong();
         return Result.ok(lostFoundPostService.listMine(userId, page, size, postType));
     }
