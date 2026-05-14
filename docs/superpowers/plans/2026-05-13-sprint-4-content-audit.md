@@ -154,27 +154,22 @@ git -C /Users/cyrene/Dev/shigui commit -m "feat: add AuditRecord entity, mapper,
 package com.shigui.service;
 
 import com.shigui.entity.AuditRecord;
-import com.shigui.entity.LostFoundPost;
 import com.shigui.mapper.AuditRecordMapper;
-import com.shigui.mapper.LostFoundPostMapper;
 import com.shigui.service.impl.AuditRecordServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-class AdminPostServiceTest {
+class AuditRecordServiceTest {
 
     private AuditRecordMapper auditRecordMapper;
-    private LostFoundPostMapper lostFoundPostMapper;
     private AuditRecordService auditRecordService;
 
     @BeforeEach
     void setUp() {
         auditRecordMapper = mock(AuditRecordMapper.class);
-        lostFoundPostMapper = mock(LostFoundPostMapper.class);
         auditRecordService = new AuditRecordServiceImpl();
         injectMapper(auditRecordService, auditRecordMapper);
     }
@@ -206,7 +201,7 @@ class AdminPostServiceTest {
 - [ ] **Step 2: 运行测试确认通过**
 
 ```bash
-cd /Users/cyrene/Dev/shigui/backend && ./mvnw test -Dtest=AdminPostServiceTest
+cd /Users/cyrene/Dev/shigui/backend && ./mvnw test -Dtest=AuditRecordServiceTest
 ```
 预期：PASS — 2 tests。
 
@@ -215,16 +210,6 @@ cd /Users/cyrene/Dev/shigui/backend && ./mvnw test -Dtest=AdminPostServiceTest
 在 `AdminControllerTest` 中追加以下测试方法。需要新增 mock `LostFoundPostService` 和 `AuditRecordService`：
 
 新增字段：
-```java
-@MockitoBean
-private LostFoundPostService lostFoundPostService;
-
-@MockitoBean
-private AuditRecordService auditRecordService;
-```
-
-新增 mock 字段和测试方法。替换旧的 `getAdminToken`：
-
 ```java
 @MockitoBean
 private LostFoundPostService lostFoundPostService;
@@ -644,9 +629,12 @@ async function loadPosts() {
 }
 
 async function approve(id: number) {
-  await api.post(`/api/admin/posts/${id}/approve`)
-  ElMessage.success('审核通过')
-  loadPosts()
+  try {
+    await ElMessageBox.confirm('确认审核通过该单据？通过后将进入匹配池。', '审核通过', { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'success' })
+    await api.post(`/api/admin/posts/${id}/approve`)
+    ElMessage.success('审核通过')
+    loadPosts()
+  } catch { /* 用户取消 */ }
 }
 
 async function viewDetail(id: number) {
