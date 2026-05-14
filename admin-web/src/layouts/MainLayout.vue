@@ -7,6 +7,7 @@ const auth = useAuthStore()
 // 菜单以数组维护，后续增加内容审核、用户管理时只需追加配置。
 const menuItems = [
   { path: '/dashboard', title: '仪表盘' },
+  { path: '/posts', title: '内容审核' },
 ]
 </script>
 
