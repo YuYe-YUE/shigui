@@ -1,49 +1,39 @@
-/**
- * 帖子详情页 - 查看帖子完整信息，支持认领申请和匿名聊天
- * 用户可在此页面查看失物招领帖子的完整信息，发起认领验证或与发布者匿名沟通
- */
 const app = getApp()
-
 Page({
-  data: {
-    post: null,
-    id: ''
-  },
-
-  /**
-   * 页面加载 - 接收帖子ID参数并加载详情数据
-   */
-  onLoad(options) {
-    this.setData({ id: options.id })
-    this.loadDetail()
-  },
-
-  /**
-   * 请求帖子详情数据
-   */
+  data: { post: null, id: '' },
+  onLoad(options) { this.setData({ id: options.id }); this.loadDetail() },
   loadDetail() {
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts/${this.data.id}`,
       header: { satoken: app.globalData.token },
-      success: (res) => {
-        if (res.data.code === 200) {
-          this.setData({ post: res.data.data })
-        }
+      success: (res) => { if (res.data.code === 200) this.setData({ post: res.data.data }) }
+    })
+  },
+  applyClaim() {
+    if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
+    wx.showModal({
+      title: '申请认领', editable: true, placeholderText: '请填写只有物主知道的特征',
+      success: (modal) => {
+        if (!modal.confirm) return
+        const answer = (modal.content || '').trim()
+        if (!answer) { wx.showToast({ title: '请填写私密特征', icon: 'none' }); return }
+        wx.request({
+          url: `${app.globalData.baseUrl}/api/claims`, method: 'POST',
+          header: { satoken: app.globalData.token },
+          data: { postId: Number(this.data.id), privateFeatureAnswer: answer },
+          success: (res) => {
+            if (res.data.code === 200) {
+              wx.showToast({ title: '已提交认领', icon: 'success' })
+              wx.navigateTo({ url: '/pages/claims/claims' })
+            } else wx.showToast({ title: res.data.message || '提交失败', icon: 'none' })
+          },
+          fail: () => wx.showToast({ title: '网络错误', icon: 'none' })
+        })
       }
     })
   },
-
-  /**
-   * 发起认领申请 - 功能开发中
-   */
-  applyClaim() {
-    wx.showToast({ title: '功能开发中', icon: 'none' })
-  },
-
-  /**
-   * 打开匿名聊天会话 - 功能开发中
-   */
   openChat() {
-    wx.showToast({ title: '功能开发中', icon: 'none' })
+    if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
+    wx.navigateTo({ url: `/pages/chat/chat?postId=${this.data.id}` })
   }
 })

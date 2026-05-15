@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="claim-card" wx:for="{{claims}}" wx:key="id">
+    <view class="claim-title">{{item.postTitle}}</view>
+    <view class="claim-meta">{{item.itemName}} · {{item.campusArea}} {{item.locationName}}</view>
+    <view class="claim-status">{{item.status}}</view>
+    <view class="claim-reason" wx:if="{{item.aiReason}}">{{item.aiReason}}</view>
+    <view class="storage" wx:if="{{item.storageLocation}}">暂存地点：{{item.storageLocation}}</view>
+    <view class="actions">
+      <button size="mini" bindtap="goDetail" data-post-id="{{item.postId}}">查看单据</button>
+      <button wx:if="{{item.status === 'VERIFIED'}}" size="mini" type="primary" bindtap="confirmReceive" data-id="{{item.id}}">确认收到</button>
+    </view>
+  </view>
+  <view wx:if="{{claims.length === 0}}" class="empty">暂无认领记录</view>
+</view>

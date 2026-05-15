@@ -44,7 +44,7 @@
 
   <!-- 底部悬浮操作栏 (FAB) -->
   <view class="fab-bar">
-    <button class="btn-primary" bindtap="applyClaim">申请认领</button>
+    <button wx:if="{{post && post.postType === 'FOUND' && post.status === 'MATCHING'}}" class="btn-primary" bindtap="applyClaim">申请认领</button>
     <button class="btn-secondary" bindtap="openChat">联系对方</button>
   </view>
 </view>

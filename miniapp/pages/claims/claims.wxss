@@ -1,0 +1,8 @@
+.container{min-height:100vh;background:#f0f2f0;padding:24rpx;box-sizing:border-box}
+.claim-card{background:#fff;border-radius:8rpx;padding:24rpx;margin-bottom:20rpx}
+.claim-title{font-size:32rpx;font-weight:700;color:#1f2937}
+.claim-meta{margin-top:8rpx;color:#6b7280;font-size:24rpx}
+.claim-status{margin-top:12rpx;color:#00573D;font-size:26rpx;font-weight:600}
+.claim-reason,.storage{margin-top:12rpx;font-size:26rpx;color:#374151}
+.actions{display:flex;gap:16rpx;margin-top:20rpx}
+.empty{text-align:center;color:#999;margin-top:120rpx}

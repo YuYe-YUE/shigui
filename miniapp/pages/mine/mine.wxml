@@ -35,7 +35,7 @@
   </view>
 
   <view class="menu-group">
-    <view class="menu-item" bindtap="onTapStub" data-msg="认领记录功能开发中">
+    <view class="menu-item" bindtap="goClaims">
       <image class="menu-icon" src="/assets/icons/doc.svg" />
       <text class="menu-text">认领记录</text>
       <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />

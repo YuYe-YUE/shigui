@@ -71,6 +71,8 @@ Page({
     wx.navigateTo({ url: '/pages/notifications/notifications' })
   },
 
+  goClaims() { wx.navigateTo({ url: '/pages/claims/claims' }) },
+
   onTapStub(e) {
     wx.showToast({ title: e.currentTarget.dataset.msg, icon: 'none' })
   }

@@ -9,7 +9,8 @@
     "pages/map/map",
     "pages/matches/matches",
     "pages/notifications/notifications",
-    "pages/my-posts/my-posts"
+    "pages/my-posts/my-posts",
+    "pages/claims/claims"
   ],
   "window": {
     "navigationBarBackgroundColor": "#00573D",
