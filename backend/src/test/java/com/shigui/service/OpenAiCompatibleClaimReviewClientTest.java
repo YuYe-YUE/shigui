@@ -5,6 +5,7 @@ import com.shigui.dto.AiClaimReviewResult;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.impl.OpenAiCompatibleClaimReviewClient;
 import com.sun.net.httpserver.HttpServer;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
@@ -12,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class OpenAiCompatibleClaimReviewClientTest {
     private static String value(String name) {
@@ -23,13 +23,14 @@ class OpenAiCompatibleClaimReviewClientTest {
     }
 
     @Test
-    void reviewClaim_realApi_approvesStrongPrivateFeatureMatchWithoutRepeatingLongPrivateNumbers() {
-        String baseUrl = value("AI_CLAIM_BASE_URL");
-        String apiKey = value("AI_CLAIM_API_KEY");
-        String model = value("AI_CLAIM_MODEL");
-        if (baseUrl == null || apiKey == null || model == null) {
-            fail("AI_CLAIM_BASE_URL, AI_CLAIM_API_KEY, AI_CLAIM_MODEL must be set via -D or env");
-        }
+    void reviewClaim_realApi_approvesStrongPrivateFeatureMatchWithoutLeakingPrivateDetails() {
+        String apiKey = firstValue("AI_CLAIM_API_KEY", "AI_MATCH_API_KEY");
+        Assumptions.assumeTrue(apiKey != null,
+                "Set AI_CLAIM_API_KEY or AI_MATCH_API_KEY to run the real AI claim review integration test");
+        String baseUrl = firstValue("AI_CLAIM_BASE_URL", "AI_MATCH_BASE_URL");
+        if (baseUrl == null) baseUrl = "https://api.deepseek.com";
+        String model = firstValue("AI_CLAIM_MODEL", "AI_MATCH_MODEL");
+        if (model == null) model = "deepseek-v4-flash";
 
         AiClaimReviewProperties properties = new AiClaimReviewProperties();
         properties.setEnabled(true);
@@ -59,15 +60,16 @@ class OpenAiCompatibleClaimReviewClientTest {
         assertThat(result.getConfidence()).isNotNull();
         assertThat(result.getReason()).isNotBlank();
         assertThat(result.getReason()).doesNotContain("2234567890");
+        assertThat(result.getReason()).doesNotContain("蓝色星星贴纸");
         assertThat(result.getReason()).doesNotContainPattern("\\d{4,}");
     }
 
     @Test
-    void reviewClaim_sanitizesLongNumbersReturnedInReason() throws Exception {
+    void reviewClaim_normalizesApproveReasonWithoutLeakingPrivateDetails() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/chat/completions", exchange -> {
             String response = """
-                    {"choices":[{"message":{"content":"{\\"decision\\":\\"APPROVE\\",\\"confidence\\":0.91,\\"reason\\":\\"学号2234567890匹配\\"}"}}]}
+                    {"choices":[{"message":{"content":"{\\"decision\\":\\"APPROVE\\",\\"confidence\\":0.91,\\"reason\\":\\"蓝色星星贴纸和学号2234567890匹配\\"}"}}]}
                     """;
             byte[] body = response.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -88,11 +90,56 @@ class OpenAiCompatibleClaimReviewClientTest {
             AiClaimReviewResult result = client.reviewClaim(foundPost(), "学号2234567890，卡套里有蓝色星星贴纸");
 
             assertThat(result.getDecision()).isEqualTo("APPROVE");
+            assertThat(result.getReason()).isEqualTo("私密特征匹配");
             assertThat(result.getReason()).doesNotContain("2234567890");
+            assertThat(result.getReason()).doesNotContain("蓝色星星贴纸");
             assertThat(result.getReason()).doesNotContainPattern("\\d{4,}");
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    void reviewClaim_parsesFencedJsonAndNormalizesNeedsReviewReason() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"```json\\n{\\"decision\\":\\"NEEDS_REVIEW\\",\\"confidence\\":0.52,\\"reason\\":\\"只提到蓝色星星贴纸，仍需人工确认\\"}\\n```"}}]}
+                    """;
+            byte[] body = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            AiClaimReviewProperties properties = fakeProperties(server);
+
+            OpenAiCompatibleClaimReviewClient client = new OpenAiCompatibleClaimReviewClient(properties);
+            AiClaimReviewResult result = client.reviewClaim(foundPost(), "蓝色星星贴纸");
+
+            assertThat(result.getDecision()).isEqualTo("NEEDS_REVIEW");
+            assertThat(result.getReason()).isEqualTo("信息不足，需人工复核");
+            assertThat(result.getReason()).doesNotContain("蓝色星星贴纸");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private static String firstValue(String first, String second) {
+        String firstResult = value(first);
+        return firstResult != null ? firstResult : value(second);
+    }
+
+    private static AiClaimReviewProperties fakeProperties(HttpServer server) {
+        AiClaimReviewProperties properties = new AiClaimReviewProperties();
+        properties.setEnabled(true);
+        properties.setBaseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/v1");
+        properties.setApiKey("dummy");
+        properties.setModel("dummy");
+        properties.setTimeoutSeconds(5);
+        return properties;
     }
 
     private static LostFoundPost foundPost() {

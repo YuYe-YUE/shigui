@@ -95,16 +95,20 @@ public class OpenAiCompatibleClaimReviewClient implements AiClaimReviewClient {
             if (!List.of("APPROVE", "REJECT", "NEEDS_REVIEW").contains(result.getDecision())) {
                 throw new IllegalStateException("Unknown claim review decision: " + result.getDecision());
             }
-            result.setReason(sanitizeReason(result.getReason()));
+            result.setReason(sanitizeReason(result.getDecision()));
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse AI claim review response: " + e.getMessage(), e);
         }
     }
 
-    private String sanitizeReason(String reason) {
-        if (reason == null) return null;
-        return reason.replaceAll("\\d{4,}", "[已隐藏]");
+    private String sanitizeReason(String decision) {
+        return switch (decision) {
+            case "APPROVE" -> "私密特征匹配";
+            case "REJECT" -> "私密特征不匹配";
+            case "NEEDS_REVIEW" -> "信息不足，需人工复核";
+            default -> "需人工复核";
+        };
     }
 
     private void validateConfig() {
