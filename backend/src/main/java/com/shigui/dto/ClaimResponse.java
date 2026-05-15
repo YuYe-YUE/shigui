@@ -14,6 +14,7 @@ public class ClaimResponse {
     private String itemCategory;
     private String campusArea;
     private String locationName;
+    private String verifiedStorageLocation;
     private String status;
     private String aiDecision;
     private BigDecimal aiConfidence;
