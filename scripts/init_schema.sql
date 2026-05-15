@@ -78,11 +78,18 @@ CREATE TABLE claim_record (
     verified_at DATETIME DEFAULT NULL,
     completed_at DATETIME DEFAULT NULL,
     deleted TINYINT DEFAULT 0,
+    active_claim_post_id BIGINT GENERATED ALWAYS AS (
+        CASE
+            WHEN deleted = 0 AND status IN ('PENDING_AI_REVIEW', 'PENDING_ADMIN_REVIEW', 'VERIFIED') THEN post_id
+            ELSE NULL
+        END
+    ) STORED,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_post_id (post_id),
     INDEX idx_claimant (claimant_user_id),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    UNIQUE KEY uk_active_claim_post (active_claim_post_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 智能匹配结果
