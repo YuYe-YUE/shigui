@@ -1,5 +1,6 @@
 package com.shigui.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.config.AiClaimReviewProperties;
 import com.shigui.dto.AiClaimReviewResult;
 import com.shigui.dto.ClaimResponse;
@@ -18,12 +19,14 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,7 +66,9 @@ class ClaimRecordServiceTest {
             claim.setId(99L);
             return 1;
         });
+        when(claimRecordMapper.updateById(any(ClaimRecord.class))).thenReturn(1);
         when(aiClaimReviewClient.reviewClaim(eq(post), eq("蓝色贴纸"))).thenReturn(aiResult("APPROVE", "0.91"));
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
 
         ClaimResponse response = service.createClaim(2L, createRequest("蓝色贴纸"));
 
@@ -72,6 +77,29 @@ class ClaimRecordServiceTest {
         assertThat(post.getStatus()).isEqualTo("RETURNING");
         verify(lostFoundPostService).updateById(post);
         verify(claimRecordMapper).updateById(any(ClaimRecord.class));
+    }
+
+    @Test
+    void createClaim_aiReasonUsesSafeSummaryWithoutPrivateDetail() {
+        LostFoundPost post = foundPost();
+        when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(appUserService.getByIdOrThrow(2L)).thenReturn(normalUser(2L));
+        when(claimRecordMapper.selectCount(any())).thenReturn(0L);
+        when(claimRecordMapper.insert(any(ClaimRecord.class))).thenAnswer(inv -> {
+            ClaimRecord claim = inv.getArgument(0);
+            claim.setId(99L);
+            return 1;
+        });
+        when(claimRecordMapper.updateById(any(ClaimRecord.class))).thenReturn(1);
+        AiClaimReviewResult ai = aiResult("APPROVE", "0.91");
+        ai.setReason("用户回答包含蓝色星星贴纸，确认匹配");
+        when(aiClaimReviewClient.reviewClaim(eq(post), eq("蓝色星星贴纸"))).thenReturn(ai);
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
+
+        ClaimResponse response = service.createClaim(2L, createRequest("蓝色星星贴纸"));
+
+        assertThat(response.getAiReason()).isEqualTo("私密特征匹配");
+        assertThat(response.getAiReason()).doesNotContain("蓝色星星贴纸");
     }
 
     @Test
@@ -85,7 +113,9 @@ class ClaimRecordServiceTest {
             claim.setId(99L);
             return 1;
         });
+        when(claimRecordMapper.updateById(any(ClaimRecord.class))).thenReturn(1);
         when(aiClaimReviewClient.reviewClaim(eq(post), eq("我的"))).thenReturn(aiResult("NEEDS_REVIEW", "0.50"));
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
 
         ClaimResponse response = service.createClaim(2L, createRequest("我的"));
 
@@ -132,12 +162,73 @@ class ClaimRecordServiceTest {
     }
 
     @Test
+    void createClaim_postUpdateFailureIsNotStoredAsAiFailure() {
+        LostFoundPost post = foundPost();
+        when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(appUserService.getByIdOrThrow(2L)).thenReturn(normalUser(2L));
+        when(claimRecordMapper.selectCount(any())).thenReturn(0L);
+        when(claimRecordMapper.insert(any(ClaimRecord.class))).thenAnswer(inv -> {
+            ClaimRecord claim = inv.getArgument(0);
+            claim.setId(99L);
+            return 1;
+        });
+        when(aiClaimReviewClient.reviewClaim(eq(post), eq("蓝色贴纸"))).thenReturn(aiResult("APPROVE", "0.91"));
+        when(lostFoundPostService.updateById(post)).thenThrow(new IllegalStateException("post update failed"));
+
+        assertThatThrownBy(() -> service.createClaim(2L, createRequest("蓝色贴纸")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("post update failed");
+    }
+
+    @Test
+    void listMine_doesNotPopulatePostFieldsFromDeletedPost() {
+        ClaimRecord claim = verifiedClaim();
+        Page<ClaimRecord> page = new Page<>(1, 10);
+        page.setRecords(List.of(claim));
+        page.setTotal(1);
+        LostFoundPost deletedPost = foundPost();
+        deletedPost.setDeleted(1);
+        when(claimRecordMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(lostFoundPostService.getById(10L)).thenReturn(deletedPost);
+
+        Page<ClaimResponse> result = service.listMine(2L, 1, 10);
+        ClaimResponse response = result.getRecords().get(0);
+
+        assertThat(response.getPostTitle()).isNull();
+        assertThat(response.getItemName()).isNull();
+        assertThat(response.getVerifiedStorageLocation()).isNull();
+        assertThat(response.getStatus()).isEqualTo("VERIFIED");
+    }
+
+    @Test
+    void listAdminClaims_doesNotPopulatePostFieldsFromDeletedPost() {
+        ClaimRecord claim = pendingAdminClaim();
+        Page<ClaimRecord> page = new Page<>(1, 10);
+        page.setRecords(List.of(claim));
+        page.setTotal(1);
+        LostFoundPost deletedPost = foundPost();
+        deletedPost.setDeleted(1);
+        when(claimRecordMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(lostFoundPostService.getById(10L)).thenReturn(deletedPost);
+
+        var result = service.listAdminClaims(1, 10, null);
+        var response = result.getRecords().get(0);
+
+        assertThat(response.getPostTitle()).isNull();
+        assertThat(response.getStorageLocation()).isNull();
+        assertThat(response.getPrivateFeature()).isNull();
+        assertThat(response.getStatus()).isEqualTo("PENDING_ADMIN_REVIEW");
+    }
+
+    @Test
     void approveByAdmin_verifiesClaimAndReturnsStorageLocation() {
         ClaimRecord claim = pendingAdminClaim();
         LostFoundPost post = foundPost();
         post.setStatus("CLAIMING");
         when(claimRecordMapper.selectById(99L)).thenReturn(claim);
         when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(claimRecordMapper.update(any(ClaimRecord.class), any())).thenReturn(1);
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
 
         var response = service.approveByAdmin(99L);
 
@@ -145,8 +236,24 @@ class ClaimRecordServiceTest {
         assertThat(response.getStorageLocation()).isEqualTo("保卫处前台");
         assertThat(claim.getVerifiedAt()).isNotNull();
         assertThat(post.getStatus()).isEqualTo("RETURNING");
-        verify(claimRecordMapper).updateById(claim);
+        verify(claimRecordMapper).update(eq(claim), any());
         verify(lostFoundPostService).updateById(post);
+    }
+
+    @Test
+    void approveByAdmin_concurrentStatusChangeFailsBeforePostUpdate() {
+        ClaimRecord claim = pendingAdminClaim();
+        LostFoundPost post = foundPost();
+        post.setStatus("CLAIMING");
+        when(claimRecordMapper.selectById(99L)).thenReturn(claim);
+        when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(claimRecordMapper.update(any(ClaimRecord.class), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> service.approveByAdmin(99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("当前认领申请不可审核");
+        verify(lostFoundPostService).getById(10L);
+        verifyNoMoreInteractions(lostFoundPostService);
     }
 
     @Test
@@ -156,13 +263,15 @@ class ClaimRecordServiceTest {
         post.setStatus("CLAIMING");
         when(claimRecordMapper.selectById(99L)).thenReturn(claim);
         when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(claimRecordMapper.update(any(ClaimRecord.class), any())).thenReturn(1);
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
 
         var response = service.rejectByAdmin(99L, "信息不符");
 
         assertThat(response.getStatus()).isEqualTo("REJECTED");
         assertThat(response.getAdminReason()).isEqualTo("信息不符");
         assertThat(post.getStatus()).isEqualTo("MATCHING");
-        verify(claimRecordMapper).updateById(claim);
+        verify(claimRecordMapper).update(eq(claim), any());
         verify(lostFoundPostService).updateById(post);
     }
 
@@ -173,6 +282,8 @@ class ClaimRecordServiceTest {
         post.setStatus("RETURNING");
         when(claimRecordMapper.selectById(99L)).thenReturn(claim);
         when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(claimRecordMapper.update(any(ClaimRecord.class), any())).thenReturn(1);
+        when(lostFoundPostService.updateById(post)).thenReturn(true);
 
         ClaimResponse response = service.confirmReceive(2L, 99L);
 
@@ -180,7 +291,7 @@ class ClaimRecordServiceTest {
         assertThat(response.getVerifiedStorageLocation()).isEqualTo("保卫处前台");
         assertThat(claim.getCompletedAt()).isNotNull();
         assertThat(post.getStatus()).isEqualTo("COMPLETED");
-        verify(claimRecordMapper).updateById(claim);
+        verify(claimRecordMapper).update(eq(claim), any());
         verify(lostFoundPostService).updateById(post);
     }
 

@@ -1,6 +1,7 @@
 package com.shigui.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shigui.config.AiClaimReviewProperties;
@@ -105,10 +106,10 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         LostFoundPost post = requirePost(claim.getPostId());
         claim.setStatus(COMPLETED);
         claim.setCompletedAt(LocalDateTime.now());
-        updateById(claim);
+        updateClaimStatusOrThrow(claim, VERIFIED, "只有已通过的认领申请可以确认收到");
 
         post.setStatus("COMPLETED");
-        lostFoundPostService.updateById(post);
+        updatePostOrThrow(post);
         return toResponse(claim, post);
     }
 
@@ -133,12 +134,13 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         ensureAdminReviewable(claim);
 
         LostFoundPost post = requirePost(claim.getPostId());
+        String expectedStatus = claim.getStatus();
         claim.setStatus(VERIFIED);
         claim.setVerifiedAt(LocalDateTime.now());
-        updateById(claim);
+        updateClaimStatusOrThrow(claim, expectedStatus, "当前认领申请不可审核");
 
         post.setStatus("RETURNING");
-        lostFoundPostService.updateById(post);
+        updatePostOrThrow(post);
         return toAdminResponse(claim, post);
     }
 
@@ -149,47 +151,54 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         ensureAdminReviewable(claim);
 
         LostFoundPost post = requirePost(claim.getPostId());
+        String expectedStatus = claim.getStatus();
         claim.setStatus(REJECTED);
         claim.setAdminReason(reason == null ? "" : reason.trim());
-        updateById(claim);
+        updateClaimStatusOrThrow(claim, expectedStatus, "当前认领申请不可审核");
 
         post.setStatus("MATCHING");
-        lostFoundPostService.updateById(post);
+        updatePostOrThrow(post);
         return toAdminResponse(claim, post);
     }
 
     private void applyAiReview(LostFoundPost post, ClaimRecord claim) {
+        AiClaimReviewResult result;
         try {
-            AiClaimReviewResult result = aiClaimReviewClient.reviewClaim(post, claim.getPrivateFeatureAnswer());
-            claim.setAiDecision(result == null ? "NEEDS_REVIEW" : trimToEmpty(result.getDecision()));
-            claim.setAiConfidence(normalize(result == null ? null : result.getConfidence()));
-            claim.setAiReason(sanitize(result == null ? null : result.getReason()));
-
-            if ("APPROVE".equals(claim.getAiDecision())
-                    && claim.getAiConfidence().compareTo(properties.autoApproveThresholdValue()) >= 0) {
-                claim.setStatus(VERIFIED);
-                claim.setVerifiedAt(LocalDateTime.now());
-                post.setStatus("RETURNING");
-                lostFoundPostService.updateById(post);
-            } else if ("REJECT".equals(claim.getAiDecision())
-                    && claim.getAiConfidence().compareTo(properties.autoRejectThresholdValue()) >= 0) {
-                claim.setStatus(REJECTED);
-                post.setStatus("MATCHING");
-                lostFoundPostService.updateById(post);
-            } else {
-                claim.setStatus(PENDING_ADMIN_REVIEW);
-                post.setStatus("CLAIMING");
-                lostFoundPostService.updateById(post);
-            }
+            result = aiClaimReviewClient.reviewClaim(post, claim.getPrivateFeatureAnswer());
         } catch (Exception e) {
             claim.setAiDecision("NEEDS_REVIEW");
             claim.setAiConfidence(BigDecimal.ZERO);
             claim.setAiReason("AI 预审失败，等待管理员审核");
             claim.setStatus(PENDING_ADMIN_REVIEW);
             post.setStatus("CLAIMING");
-            lostFoundPostService.updateById(post);
+            updatePostOrThrow(post);
+            updateClaimOrThrow(claim);
+            return;
         }
-        updateById(claim);
+
+        claim.setAiDecision(result == null ? "NEEDS_REVIEW" : trimToEmpty(result.getDecision()));
+        claim.setAiConfidence(normalize(result == null ? null : result.getConfidence()));
+
+        if ("APPROVE".equals(claim.getAiDecision())
+                && claim.getAiConfidence().compareTo(properties.autoApproveThresholdValue()) >= 0) {
+            claim.setStatus(VERIFIED);
+            claim.setAiReason("私密特征匹配");
+            claim.setVerifiedAt(LocalDateTime.now());
+            post.setStatus("RETURNING");
+            updatePostOrThrow(post);
+        } else if ("REJECT".equals(claim.getAiDecision())
+                && claim.getAiConfidence().compareTo(properties.autoRejectThresholdValue()) >= 0) {
+            claim.setStatus(REJECTED);
+            claim.setAiReason("私密特征不匹配");
+            post.setStatus("MATCHING");
+            updatePostOrThrow(post);
+        } else {
+            claim.setStatus(PENDING_ADMIN_REVIEW);
+            claim.setAiReason("信息不足，需人工复核");
+            post.setStatus("CLAIMING");
+            updatePostOrThrow(post);
+        }
+        updateClaimOrThrow(claim);
     }
 
     private void validateCreateRequest(CreateClaimRequest request) {
@@ -250,6 +259,28 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         }
     }
 
+    private void updateClaimStatusOrThrow(ClaimRecord claim, String expectedStatus, String failureMessage) {
+        int rows = baseMapper.update(claim, new LambdaUpdateWrapper<ClaimRecord>()
+                .eq(ClaimRecord::getId, claim.getId())
+                .eq(ClaimRecord::getStatus, expectedStatus)
+                .eq(ClaimRecord::getDeleted, 0));
+        if (rows != 1) {
+            throw new IllegalArgumentException(failureMessage);
+        }
+    }
+
+    private void updateClaimOrThrow(ClaimRecord claim) {
+        if (!updateById(claim)) {
+            throw new IllegalStateException("认领申请更新失败");
+        }
+    }
+
+    private void updatePostOrThrow(LostFoundPost post) {
+        if (!lostFoundPostService.updateById(post)) {
+            throw new IllegalStateException("单据状态更新失败");
+        }
+    }
+
     private ClaimResponse toResponse(ClaimRecord claim) {
         return toResponse(claim, lostFoundPostService.getById(claim.getPostId()));
     }
@@ -258,7 +289,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         ClaimResponse response = new ClaimResponse();
         response.setId(claim.getId());
         response.setPostId(claim.getPostId());
-        if (post != null) {
+        if (isVisiblePost(post)) {
             response.setPostTitle(post.getTitle());
             response.setItemName(post.getItemName());
             response.setItemCategory(post.getItemCategory());
@@ -297,7 +328,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         response.setCreatedAt(claim.getCreatedAt());
         response.setVerifiedAt(claim.getVerifiedAt());
         response.setCompletedAt(claim.getCompletedAt());
-        if (post != null) {
+        if (isVisiblePost(post)) {
             response.setPostTitle(post.getTitle());
             response.setItemName(post.getItemName());
             response.setItemCategory(post.getItemCategory());
@@ -309,18 +340,15 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return response;
     }
 
+    private boolean isVisiblePost(LostFoundPost post) {
+        return post != null && !Integer.valueOf(1).equals(post.getDeleted());
+    }
+
     private BigDecimal normalize(BigDecimal value) {
         if (value == null) {
             return BigDecimal.ZERO;
         }
         return value.max(BigDecimal.ZERO).min(BigDecimal.ONE);
-    }
-
-    private String sanitize(String value) {
-        return trimToEmpty(value)
-                .replaceAll("\\d{4,}", "***")
-                .replaceAll("卡号|学号|工号|编号|尾号", "")
-                .trim();
     }
 
     private String trimToEmpty(String value) {
