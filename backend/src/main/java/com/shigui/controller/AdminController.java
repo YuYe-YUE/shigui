@@ -3,15 +3,23 @@ package com.shigui.controller;
 import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.common.Result;
+import com.shigui.dto.AdminDashboardResponse;
+import com.shigui.dto.AdminMatchResponse;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.AdminPostService;
 import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
 import com.shigui.service.LostFoundPostService;
+import com.shigui.dto.AdminClaimResponse;
+import com.shigui.entity.ClaimRecord;
+import com.shigui.service.ClaimRecordService;
+import com.shigui.service.MatchRecordService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,15 +32,21 @@ public class AdminController {
     private final LostFoundPostService lostFoundPostService;
     private final AdminPostService adminPostService;
     private final AppUserService appUserService;
+    private final MatchRecordService matchRecordService;
+    private final ClaimRecordService claimRecordService;
 
     public AdminController(AdminUserService adminUserService,
                            LostFoundPostService lostFoundPostService,
                            AdminPostService adminPostService,
-                           AppUserService appUserService) {
+                           AppUserService appUserService,
+                           MatchRecordService matchRecordService,
+                           ClaimRecordService claimRecordService) {
         this.adminUserService = adminUserService;
         this.lostFoundPostService = lostFoundPostService;
         this.adminPostService = adminPostService;
         this.appUserService = appUserService;
+        this.matchRecordService = matchRecordService;
+        this.claimRecordService = claimRecordService;
     }
 
     private void requireAdmin() {
@@ -112,6 +126,34 @@ public class AdminController {
         return Result.ok(appUserService.page(new Page<>(page, size), wrapper));
     }
 
+    @GetMapping("/matches")
+    public Result<Page<AdminMatchResponse>> listMatches(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        requireAdmin();
+        return Result.ok(matchRecordService.listAdminMatches(page, size));
+    }
+
+    @GetMapping("/dashboard")
+    public Result<AdminDashboardResponse> dashboard() {
+        requireAdmin();
+        AdminDashboardResponse response = new AdminDashboardResponse();
+        response.setRegisteredUsers(appUserService.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AppUser>()
+                .eq(AppUser::getDeleted, 0)));
+        response.setMatchingPosts(lostFoundPostService.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<LostFoundPost>()
+                .eq(LostFoundPost::getDeleted, 0)
+                .eq(LostFoundPost::getStatus, "MATCHING")));
+        response.setTodayPublished(lostFoundPostService.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<LostFoundPost>()
+                .eq(LostFoundPost::getDeleted, 0)
+                .ge(LostFoundPost::getPublishedAt, LocalDate.now().atStartOfDay())));
+        response.setSuccessfulClaims(lostFoundPostService.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<LostFoundPost>()
+                .eq(LostFoundPost::getDeleted, 0)
+                .eq(LostFoundPost::getStatus, "COMPLETED")));
+        response.setMatchRecords(matchRecordService.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.shigui.entity.MatchRecord>()
+                .eq(com.shigui.entity.MatchRecord::getDeleted, 0)));
+        return Result.ok(response);
+    }
+
     @PutMapping("/users/{id}/ban")
     public Result<Void> banUser(@PathVariable Long id) {
         requireAdmin();
@@ -123,6 +165,58 @@ public class AdminController {
     public Result<Void> unbanUser(@PathVariable Long id) {
         requireAdmin();
         appUserService.unbanUser(id);
+        return Result.ok();
+    }
+
+    @GetMapping("/claims")
+    public Result<Page<AdminClaimResponse>> listClaims(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        requireAdmin();
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ClaimRecord> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(ClaimRecord::getDeleted, 0).orderByDesc(ClaimRecord::getCreatedAt);
+        Page<ClaimRecord> entityPage = claimRecordService.page(new Page<>(page, size), wrapper);
+        List<AdminClaimResponse> responses = entityPage.getRecords().stream().map(claim -> {
+            AdminClaimResponse r = new AdminClaimResponse();
+            r.setId(claim.getId()); r.setPostId(claim.getPostId()); r.setStatus(claim.getStatus());
+            r.setClaimantUserId(claim.getClaimantUserId()); r.setPrivateFeatureAnswer(claim.getPrivateFeatureAnswer());
+            r.setAiDecision(claim.getAiDecision()); r.setAiConfidence(claim.getAiConfidence());
+            r.setAiReason(claim.getAiReason()); r.setCreatedAt(claim.getCreatedAt());
+            LostFoundPost post = lostFoundPostService.getById(claim.getPostId());
+            if (post != null) {
+                r.setPostTitle(post.getTitle()); r.setItemName(post.getItemName());
+                r.setItemCategory(post.getItemCategory()); r.setCampusArea(post.getCampusArea());
+                r.setLocationName(post.getLocationName()); r.setStorageLocation(post.getStorageLocation());
+                r.setPrivateFeature(post.getPrivateFeature());
+            }
+            return r;
+        }).toList();
+        Page<AdminClaimResponse> result = new Page<>(page, size);
+        result.setRecords(responses); result.setTotal(entityPage.getTotal());
+        return Result.ok(result);
+    }
+
+    @PostMapping("/claims/{id}/verify")
+    public Result<Void> verifyClaim(@PathVariable Long id) {
+        requireAdmin();
+        ClaimRecord claim = claimRecordService.getById(id);
+        if (claim == null) return Result.fail(404, "认领记录不存在");
+        claim.setStatus("VERIFIED"); claim.setVerifiedAt(java.time.LocalDateTime.now());
+        claimRecordService.updateById(claim);
+        LostFoundPost post = lostFoundPostService.getById(claim.getPostId());
+        if (post != null) { post.setStatus("CLAIMING"); lostFoundPostService.updateById(post); }
+        return Result.ok();
+    }
+
+    @PostMapping("/claims/{id}/reject")
+    public Result<Void> rejectClaim(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        requireAdmin();
+        ClaimRecord claim = claimRecordService.getById(id);
+        if (claim == null) return Result.fail(404, "认领记录不存在");
+        String reason = body.getOrDefault("reason", "");
+        claim.setStatus("REJECTED"); claim.setAdminReason(reason);
+        claimRecordService.updateById(claim);
         return Result.ok();
     }
 }
