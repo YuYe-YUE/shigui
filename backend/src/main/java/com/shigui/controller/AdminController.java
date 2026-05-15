@@ -3,11 +3,14 @@ package com.shigui.controller;
 import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.stp.StpUtil;
 import com.shigui.common.Result;
+import com.shigui.dto.AdminClaimResponse;
+import com.shigui.dto.RejectClaimRequest;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.service.AdminPostService;
 import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
+import com.shigui.service.ClaimRecordService;
 import com.shigui.service.LostFoundPostService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
@@ -24,15 +27,18 @@ public class AdminController {
     private final LostFoundPostService lostFoundPostService;
     private final AdminPostService adminPostService;
     private final AppUserService appUserService;
+    private final ClaimRecordService claimRecordService;
 
     public AdminController(AdminUserService adminUserService,
                            LostFoundPostService lostFoundPostService,
                            AdminPostService adminPostService,
-                           AppUserService appUserService) {
+                           AppUserService appUserService,
+                           ClaimRecordService claimRecordService) {
         this.adminUserService = adminUserService;
         this.lostFoundPostService = lostFoundPostService;
         this.adminPostService = adminPostService;
         this.appUserService = appUserService;
+        this.claimRecordService = claimRecordService;
     }
 
     private void requireAdmin() {
@@ -124,5 +130,26 @@ public class AdminController {
         requireAdmin();
         appUserService.unbanUser(id);
         return Result.ok();
+    }
+
+    @GetMapping("/claims")
+    public Result<Page<AdminClaimResponse>> listClaims(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status) {
+        requireAdmin();
+        return Result.ok(claimRecordService.listAdminClaims(page, size, status));
+    }
+
+    @PutMapping("/claims/{id}/approve")
+    public Result<AdminClaimResponse> approveClaim(@PathVariable Long id) {
+        requireAdmin();
+        return Result.ok(claimRecordService.approveByAdmin(id));
+    }
+
+    @PutMapping("/claims/{id}/reject")
+    public Result<AdminClaimResponse> rejectClaim(@PathVariable Long id, @RequestBody RejectClaimRequest request) {
+        requireAdmin();
+        return Result.ok(claimRecordService.rejectByAdmin(id, request.getReason()));
     }
 }
