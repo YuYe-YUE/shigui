@@ -1,6 +1,7 @@
 package com.shigui.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.service.AppUserService;
 import com.shigui.service.LostFoundPostService;
@@ -152,6 +153,39 @@ class LostFoundPostControllerTest {
                         .header("satoken", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void mapPoints_noAuth_returnsFoundMarkers() throws Exception {
+        MapPostResponse marker = new MapPostResponse();
+        marker.setId(88L);
+        marker.setItemName("校园卡");
+        marker.setItemCategory("证件");
+        marker.setCampusArea("南校园");
+        marker.setLocationName("逸夫楼门口");
+        marker.setLongitude(113.2931234);
+        marker.setLatitude(23.0961234);
+        marker.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
+        when(lostFoundPostService.listMapPosts()).thenReturn(List.of(marker));
+
+        mockMvc.perform(get("/api/posts/map"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].id").value(88))
+                .andExpect(jsonPath("$.data[0].itemName").value("校园卡"))
+                .andExpect(jsonPath("$.data[0].itemCategory").value("证件"))
+                .andExpect(jsonPath("$.data[0].campusArea").value("南校园"))
+                .andExpect(jsonPath("$.data[0].locationName").value("逸夫楼门口"))
+                .andExpect(jsonPath("$.data[0].longitude").value(113.2931234))
+                .andExpect(jsonPath("$.data[0].latitude").value(23.0961234))
+                .andExpect(jsonPath("$.data[0].eventTime").value("2026-05-13T09:30:00"))
+                .andExpect(jsonPath("$.data[0].privateFeature").doesNotExist())
+                .andExpect(jsonPath("$.data[0].storageLocation").doesNotExist())
+                .andExpect(jsonPath("$.data[0].userId").doesNotExist())
+                .andExpect(jsonPath("$.data[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data[0].postType").doesNotExist())
+                .andExpect(jsonPath("$.data[0].title").doesNotExist())
+                .andExpect(jsonPath("$.data[0].status").doesNotExist());
     }
 
     private String validJson() {

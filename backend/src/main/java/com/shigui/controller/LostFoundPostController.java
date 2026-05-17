@@ -4,9 +4,12 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.common.Result;
 import com.shigui.dto.CreatePostRequest;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.service.LostFoundPostService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -57,11 +60,11 @@ public class LostFoundPostController {
     }
 
     /**
-     * 地图点位（公开）。S7 完整实现，S3 返回空数组占位避免 500。
+     * 地图点位（公开）。只返回有坐标的招领单，且不返回私密特征、暂存地点和用户信息。
      */
     @GetMapping("/map")
-    public Result<java.util.List<Object>> mapPoints() {
-        return Result.ok(java.util.List.of());
+    public Result<List<MapPostResponse>> mapPoints() {
+        return Result.ok(lostFoundPostService.listMapPosts());
     }
 
     @GetMapping("/{id}")
