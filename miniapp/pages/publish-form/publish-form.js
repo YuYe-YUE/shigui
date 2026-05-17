@@ -11,6 +11,10 @@ Page({
       privateFeature: '',
       campusArea: '',
       locationName: '',
+      manualLocationName: '',
+      pickedLocationName: '',
+      longitude: null,
+      latitude: null,
       eventTime: '',
       storageLocation: ''
     },
@@ -28,12 +32,55 @@ Page({
   setField(e) {
     const field = e.currentTarget.dataset.field
     const value = e.detail.value
-    this.setData({ [`form.${field}`]: value })
+    const nextData = { [`form.${field}`]: value }
+    if (field === 'locationName') {
+      nextData['form.manualLocationName'] = value
+    }
+    this.setData(nextData)
   },
 
   selectCategory(e) {
     const idx = e.detail.value
     this.setData({ 'form.itemCategory': this.data.categories[idx] })
+  },
+
+  chooseFoundLocation() {
+    wx.chooseLocation({
+      success: (res) => {
+        const currentLocationName = this.data.form.locationName
+        const currentPickedLocationName = this.data.form.pickedLocationName
+        const pickedLocationName = res.name || res.address || currentLocationName || ''
+        const nextData = {
+          'form.locationName': pickedLocationName,
+          'form.pickedLocationName': pickedLocationName,
+          'form.longitude': res.longitude,
+          'form.latitude': res.latitude
+        }
+        if (
+          currentLocationName &&
+          currentLocationName !== currentPickedLocationName &&
+          currentLocationName !== pickedLocationName
+        ) {
+          nextData['form.manualLocationName'] = currentLocationName
+        }
+        this.setData(nextData)
+      },
+      fail: () => {
+        wx.showToast({ title: '未标注地图位置，单据不会显示在地图中', icon: 'none' })
+      }
+    })
+  },
+
+  clearFoundLocation() {
+    const manualLocationName = this.data.form.manualLocationName
+    const shouldClearLocationName = this.data.form.locationName === this.data.form.pickedLocationName
+    this.setData({
+      'form.locationName': manualLocationName || (shouldClearLocationName ? '' : this.data.form.locationName),
+      'form.manualLocationName': manualLocationName || '',
+      'form.pickedLocationName': '',
+      'form.longitude': null,
+      'form.latitude': null
+    })
   },
 
   submit() {
@@ -48,6 +95,9 @@ Page({
       wx.showToast({ title: error, icon: 'none' })
       return
     }
+    if (this.data.postType === 'FOUND' && (!this.data.form.longitude || !this.data.form.latitude)) {
+      wx.showToast({ title: '未标注地图位置，单据不会显示在地图中', icon: 'none' })
+    }
     this.setData({ submitting: true })
 
     const payload = {
@@ -59,6 +109,8 @@ Page({
       privateFeature: this.data.form.privateFeature,
       campusArea: this.data.form.campusArea,
       locationName: this.data.form.locationName,
+      longitude: this.data.postType === 'FOUND' ? this.data.form.longitude : null,
+      latitude: this.data.postType === 'FOUND' ? this.data.form.latitude : null,
       storageLocation: this.data.postType === 'FOUND' ? this.data.form.storageLocation : '',
       eventTime: this.data.form.eventTime ? `${this.data.form.eventTime}T00:00:00` : ''
     }

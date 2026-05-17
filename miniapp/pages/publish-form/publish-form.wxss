@@ -31,3 +31,50 @@
   margin-top: 24px;
   font-weight: 500;
 }
+
+.location-panel {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.location-summary {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.location-summary.muted {
+  color: #777;
+}
+
+.location-name {
+  font-weight: 600;
+}
+
+.location-coords {
+  color: #777;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.location-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.location-btn {
+  background: #00573D;
+  color: #fff;
+  border-radius: 16px;
+  margin: 0;
+}
+
+.location-clear {
+  background: #f4f4f4;
+  color: #555;
+  border-radius: 16px;
+  margin: 0;
+}
