@@ -1,7 +1,3 @@
-/**
- * 地图页 - 展示所有失物招领帖子的地理位置标记
- * 以地图标注形式展示每一条帖子的发生地点，点击标记可查看简要信息并跳转详情
- */
 const app = getApp()
 
 Page({
@@ -10,82 +6,121 @@ Page({
     longitude: 113.39,
     scale: 15,
     markers: [],
-    selectedPost: null
+    postsById: {},
+    selectedPost: null,
+    loading: false
   },
 
-  /**
-   * 页面加载时获取地图标记数据
-   */
   onLoad() {
     this.loadMapPoints()
   },
 
-  /**
-   * 请求所有帖子的地理位置信息并生成地图标记点
-   * 每个标记点用emoji图标显示物品品类
-   */
   loadMapPoints() {
+    this.setData({ loading: true })
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts/map`,
       success: (res) => {
-        if (res.data.code === 200) {
-          const markers = res.data.data.map(p => ({
-            id: p.id,
-            latitude: p.latitude,
-            longitude: p.longitude,
-            title: p.title,
-            postType: p.postType,
+        if (res.data.code !== 200) {
+          wx.showToast({ title: res.data.message || '地图点位加载失败', icon: 'none' })
+          this.setData({
+            markers: [],
+            postsById: {},
+            selectedPost: null
+          })
+          return
+        }
+        const posts = Array.isArray(res.data.data) ? res.data.data : []
+        const postsById = {}
+        const markers = posts.map((post) => {
+          const normalizedPost = {
+            ...post,
+            displayEventTime: this.formatEventTime(post.eventTime)
+          }
+          postsById[post.id] = normalizedPost
+          return {
+            id: normalizedPost.id,
+            latitude: normalizedPost.latitude,
+            longitude: normalizedPost.longitude,
             width: 30,
             height: 30,
             callout: {
-              content: `${p.title}\n${p.itemCategory} · ${p.locationName}`,
-              fontSize: 13,
+              content: [
+                normalizedPost.itemName || '招领物品',
+                `${normalizedPost.itemCategory || '其他'} · ${normalizedPost.campusArea || '未知校区'}`,
+                normalizedPost.locationName || '未知地点',
+                normalizedPost.displayEventTime
+              ].join('\n'),
+              fontSize: 12,
               padding: 8,
+              borderRadius: 10,
               display: 'BYCLICK'
             },
-            // 用 label 显示品类文字
             label: {
-              content: this.getCategoryLabel(p.itemCategory),
-              fontSize: 12,
-              anchorX: 0,
-              anchorY: -35
+              content: `${this.getCategoryLabel(normalizedPost.itemCategory)} ${normalizedPost.itemName || '招领物品'}`,
+              fontSize: 11,
+              color: '#00573D',
+              bgColor: '#FFFFFF',
+              borderRadius: 14,
+              padding: 6,
+              anchorX: -12,
+              anchorY: -44
             }
-          }))
-          this.setData({ markers })
-        }
+          }
+        })
+        const center = posts[0] || {}
+        this.setData({
+          markers,
+          postsById,
+          selectedPost: null,
+          latitude: center.latitude || this.data.latitude,
+          longitude: center.longitude || this.data.longitude
+        })
+      },
+      fail: () => {
+        wx.showToast({ title: '网络错误', icon: 'none' })
+        this.setData({
+          markers: [],
+          postsById: {},
+          selectedPost: null
+        })
+      },
+      complete: () => {
+        this.setData({ loading: false })
       }
     })
   },
 
-  /**
-   * 根据物品品类返回对应的emoji标签图标
-   */
   getCategoryLabel(category) {
-    const map = { '校园卡': '🎓', '学生证': '📇', '钥匙': '🔑', '耳机': '🎧', '水杯': '☕', '雨伞': '🌂', '书籍': '📖' }
+    const map = {
+      '证件': '📇',
+      '钥匙': '🔑',
+      '数码': '🎧',
+      '书籍': '📖',
+      '衣物': '🧥',
+      '雨伞': '🌂',
+      '其他': '📦'
+    }
     return map[category] || '📦'
   },
 
-  /**
-   * 地图标记点击事件 - 显示该帖子的简要信息弹窗
-   */
-  onMarkerTap(e) {
-    const id = e.detail.markerId
-    const post = this.data.markers.find(m => m.id === id)
-    this.setData({ selectedPost: post || null })
+  formatEventTime(eventTime) {
+    if (!eventTime) {
+      return '时间未知'
+    }
+    return eventTime.replace('T', ' ')
   },
 
-  /**
-   * 从信息弹窗跳转到帖子详情页
-   */
+  onMarkerTap(e) {
+    const id = e.detail.markerId
+    this.setData({ selectedPost: this.data.postsById[id] || null })
+  },
+
   goDetail() {
     if (this.data.selectedPost) {
       wx.navigateTo({ url: `/pages/detail/detail?id=${this.data.selectedPost.id}` })
     }
   },
 
-  /**
-   * 关闭帖子信息弹出层
-   */
   hidePopup() {
     this.setData({ selectedPost: null })
   }

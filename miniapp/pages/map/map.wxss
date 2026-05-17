@@ -1,22 +1,45 @@
-/* 全屏地图 */
-.full-map { width: 100%; height: 100vh; }
+.full-map {
+  width: 100%;
+  height: 100vh;
+}
 
-/* 底部弹出卡片 (Bottom Sheet 风格) */
+.empty-map {
+  position: fixed;
+  top: 40rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.94);
+  color: #555555;
+  font-size: 26rpx;
+  padding: 18rpx 28rpx;
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  z-index: 900;
+}
+
+.popup-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
 .popup {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--white);
+  background: #ffffff;
   padding: 40rpx 30rpx;
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   border-radius: 32rpx 32rpx 0 0;
-  box-shadow: 0 -8rpx 32rpx rgba(0,0,0,0.08);
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
   z-index: 1000;
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.25s ease-out;
 }
 
-/* 顶部指示条 */
 .popup::before {
   content: '';
   position: absolute;
@@ -25,7 +48,7 @@
   transform: translateX(-50%);
   width: 80rpx;
   height: 8rpx;
-  background: #E0E0E0;
+  background: #e0e0e0;
   border-radius: 4rpx;
 }
 
@@ -43,7 +66,7 @@
 .popup-title { 
   font-size: 34rpx; 
   font-weight: 700; 
-  color: var(--text-main); 
+  color: #222222; 
   flex: 1;
   margin-right: 20rpx;
 }
@@ -53,26 +76,31 @@
   border-radius: 20rpx; 
   font-weight: 600; 
 }
-.type-lost { background: var(--lost-light); color: var(--lost-color); }
-.type-found { background: var(--found-light); color: var(--found-color); }
+.type-found {
+  background: #e9f7ef;
+  color: #00573d;
+}
 
-.popup-meta { 
+.popup-meta,
+.popup-location,
+.popup-time {
   font-size: 28rpx; 
-  color: var(--text-second); 
-  margin-bottom: 30rpx; 
+  color: #666666; 
+  margin-bottom: 12rpx; 
   line-height: 1.5;
 }
 
-.popup-action {
-  font-size: 28rpx;
-  color: var(--primary-color);
-  text-align: center;
-  padding: 24rpx 0;
+.popup-location {
+  color: #333333;
   font-weight: 600;
-  border: 2rpx solid var(--primary-color);
-  border-radius: 40rpx;
-  transition: all 0.2s;
 }
-.popup-action:active {
-  background: var(--primary-light);
+
+.popup-action {
+  background: #00573d;
+  color: #ffffff;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  margin-top: 24rpx;
+  font-weight: 600;
+  line-height: 1.2;
 }
