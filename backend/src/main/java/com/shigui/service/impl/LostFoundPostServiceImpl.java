@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shigui.dto.CreatePostRequest;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
@@ -107,6 +108,29 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return result;
     }
 
+    @Override
+    public List<MapPostResponse> listMapPosts() {
+        LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(
+                LostFoundPost::getId,
+                LostFoundPost::getItemName,
+                LostFoundPost::getItemCategory,
+                LostFoundPost::getCampusArea,
+                LostFoundPost::getLocationName,
+                LostFoundPost::getLongitude,
+                LostFoundPost::getLatitude,
+                LostFoundPost::getEventTime
+        );
+        wrapper.eq(LostFoundPost::getPostType, "FOUND");
+        wrapper.eq(LostFoundPost::getStatus, "MATCHING");
+        wrapper.eq(LostFoundPost::getDeleted, 0);
+        wrapper.isNotNull(LostFoundPost::getLongitude);
+        wrapper.isNotNull(LostFoundPost::getLatitude);
+        wrapper.orderByDesc(LostFoundPost::getPublishedAt);
+
+        return list(wrapper).stream().map(this::toMapResponse).toList();
+    }
+
     private void validate(CreatePostRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("请求体不能为空");
@@ -145,10 +169,22 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         response.setDescription(post.getDescription());
         response.setCampusArea(post.getCampusArea());
         response.setLocationName(post.getLocationName());
-        response.setStorageLocation(post.getStorageLocation());
         response.setEventTime(post.getEventTime());
         response.setPublishedAt(post.getPublishedAt());
         response.setStatus(post.getStatus());
+        return response;
+    }
+
+    private MapPostResponse toMapResponse(LostFoundPost post) {
+        MapPostResponse response = new MapPostResponse();
+        response.setId(post.getId());
+        response.setItemName(post.getItemName());
+        response.setItemCategory(post.getItemCategory());
+        response.setCampusArea(post.getCampusArea());
+        response.setLocationName(post.getLocationName());
+        response.setLongitude(post.getLongitude());
+        response.setLatitude(post.getLatitude());
+        response.setEventTime(post.getEventTime());
         return response;
     }
 

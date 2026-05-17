@@ -1,24 +1,33 @@
 package com.shigui.service;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.MybatisMapperBuilderAssistant;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.dto.CreatePostRequest;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.mapper.LostFoundPostMapper;
 import com.shigui.service.impl.LostFoundPostServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +43,7 @@ class LostFoundPostServiceTest {
 
     @BeforeEach
     void setUp() {
+        ensureTableInfoInitialized();
         LostFoundPostServiceImpl impl = new LostFoundPostServiceImpl(appUserService);
         lostFoundPostService = impl;
         injectBaseMapper(impl);
@@ -236,6 +246,7 @@ class LostFoundPostServiceTest {
                     post.setStatus("MATCHING");
                     post.setTitle("test");
                     post.setPrivateFeature("秘密信息");
+                    post.setStorageLocation("保卫处前台");
                     page.setRecords(java.util.List.of(post));
                     page.setTotal(1);
                     return page;
@@ -244,6 +255,7 @@ class LostFoundPostServiceTest {
         Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
         // PostResponse 映射不包含 privateFeature
         assertThat(result.getRecords().get(0).getTitle()).isEqualTo("test");
+        assertThat(result.getRecords().get(0).getStorageLocation()).isNull();
         // privateFeature 不在 PostResponse 字段中，无法通过 getter 访问
     }
 
@@ -263,6 +275,89 @@ class LostFoundPostServiceTest {
 
         Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
         assertThat(result.getRecords().get(0).getPublishedAt()).isNotNull();
+    }
+
+    @Test
+    void listMapPosts_onlyReturnsMatchingFoundPostsWithCoordinates() {
+        when(lostFoundPostMapper.selectList(any()))
+                .thenReturn(List.of(
+                        mapFoundPost(101L, "MATCHING", 113.301, 23.101),
+                        mapFoundPost(102L, "MATCHING", 113.302, 23.102)
+                ));
+
+        List<MapPostResponse> result = lostFoundPostService.listMapPosts();
+        ArgumentCaptor<Wrapper<LostFoundPost>> wrapperCaptor = ArgumentCaptor.forClass(Wrapper.class);
+        verify(lostFoundPostMapper).selectList(wrapperCaptor.capture());
+        Wrapper<LostFoundPost> wrapper = wrapperCaptor.getValue();
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(MapPostResponse::getId)
+                .containsExactly(101L, 102L);
+        assertThat(result).extracting(MapPostResponse::getItemName)
+                .containsExactly("校园卡101", "校园卡102");
+        assertThat(result).extracting(MapPostResponse::getItemCategory)
+                .containsExactly("证件", "证件");
+        assertThat(result).extracting(MapPostResponse::getCampusArea)
+                .containsExactly("南校园", "南校园");
+        assertThat(result).extracting(MapPostResponse::getLocationName)
+                .containsExactly("逸夫楼", "逸夫楼");
+        assertThat(result).extracting(MapPostResponse::getLongitude)
+                .containsExactly(113.301, 113.302);
+        assertThat(result).extracting(MapPostResponse::getLatitude)
+                .containsExactly(23.101, 23.102);
+        assertThat(result).extracting(MapPostResponse::getEventTime)
+                .containsExactly(
+                        LocalDateTime.of(2026, 5, 16, 8, 0),
+                        LocalDateTime.of(2026, 5, 16, 8, 0)
+                );
+
+        assertThat(wrapper).isInstanceOf(LambdaQueryWrapper.class);
+        LambdaQueryWrapper<LostFoundPost> lambdaWrapper = (LambdaQueryWrapper<LostFoundPost>) wrapper;
+        String sqlSegment = lambdaWrapper.getSqlSegment();
+        String sqlSelect = lambdaWrapper.getSqlSelect();
+        assertThat(sqlSegment).contains("post_type");
+        assertThat(sqlSegment).contains("status");
+        assertThat(sqlSegment).contains("deleted");
+        assertThat(sqlSegment).contains("longitude IS NOT NULL");
+        assertThat(sqlSegment).contains("latitude IS NOT NULL");
+        assertThat(sqlSegment).contains("published_at DESC");
+        assertThat(sqlSelect).contains("id");
+        assertThat(sqlSelect).contains("item_name");
+        assertThat(sqlSelect).contains("item_category");
+        assertThat(sqlSelect).contains("campus_area");
+        assertThat(sqlSelect).contains("location_name");
+        assertThat(sqlSelect).contains("longitude");
+        assertThat(sqlSelect).contains("latitude");
+        assertThat(sqlSelect).contains("event_time");
+        assertThat(sqlSelect).doesNotContain("post_type");
+        assertThat(sqlSelect).doesNotContain("private_feature");
+        assertThat(lambdaWrapper.getParamNameValuePairs().values())
+                .contains("FOUND", "MATCHING", 0);
+    }
+
+    @Test
+    void listMapPosts_responseDoesNotExposePrivateFields() throws Exception {
+        when(lostFoundPostMapper.selectList(any()))
+                .thenReturn(List.of(mapFoundPost(201L, "MATCHING", 113.401, 23.201)));
+
+        List<MapPostResponse> result = lostFoundPostService.listMapPosts();
+
+        assertThat(result).hasSize(1);
+        assertThat(MapPostResponse.class.getDeclaredField("id")).isNotNull();
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("privateFeature"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("storageLocation"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("userId"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("description"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("postType"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("title"))
+                .isInstanceOf(NoSuchFieldException.class);
+        assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("status"))
+                .isInstanceOf(NoSuchFieldException.class);
     }
 
     private void injectBaseMapper(LostFoundPostServiceImpl impl) {
@@ -296,6 +391,15 @@ class LostFoundPostServiceTest {
         }
     }
 
+    private void ensureTableInfoInitialized() {
+        if (TableInfoHelper.getTableInfo(LostFoundPost.class) == null) {
+            TableInfoHelper.initTableInfo(
+                    new MybatisMapperBuilderAssistant(new MybatisConfiguration(), "test"),
+                    LostFoundPost.class
+            );
+        }
+    }
+
     private CreatePostRequest validLostRequest() {
         CreatePostRequest request = new CreatePostRequest();
         request.setPostType("LOST");
@@ -311,6 +415,28 @@ class LostFoundPostServiceTest {
         request.setStorageLocation("");
         request.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
         return request;
+    }
+
+    private LostFoundPost mapFoundPost(Long id, String status, Double longitude, Double latitude) {
+        LostFoundPost post = new LostFoundPost();
+        post.setId(id);
+        post.setUserId(99L);
+        post.setPostType("FOUND");
+        post.setTitle("招领校园卡" + id);
+        post.setItemName("校园卡" + id);
+        post.setItemCategory("证件");
+        post.setDescription("蓝色卡套");
+        post.setPrivateFeature("后四位 " + id);
+        post.setCampusArea("南校园");
+        post.setLocationName("逸夫楼");
+        post.setStorageLocation("保卫处前台");
+        post.setLongitude(longitude);
+        post.setLatitude(latitude);
+        post.setEventTime(LocalDateTime.of(2026, 5, 16, 8, 0));
+        post.setPublishedAt(LocalDateTime.of(2026, 5, 16, 9, 0));
+        post.setStatus(status);
+        post.setDeleted(0);
+        return post;
     }
 
     private AppUser normalUser(Long id) {
