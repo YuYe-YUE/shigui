@@ -255,7 +255,7 @@ class LostFoundPostServiceTest {
         Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
         // PostResponse 映射不包含 privateFeature
         assertThat(result.getRecords().get(0).getTitle()).isEqualTo("test");
-        assertThat(result.getRecords().get(0).getStorageLocation()).isNull();
+        assertThat(result.getRecords().get(0).getStorageLocation()).isEqualTo("保卫处前台");
         // privateFeature 不在 PostResponse 字段中，无法通过 getter 访问
     }
 
