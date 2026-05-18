@@ -14,10 +14,14 @@ Page({
           const post = res.data.data
           if (post.imageUrls) post.imageUrls = post.imageUrls.map(u => app.resolveImageUrl(u))
           if (post.coverImageUrl) post.coverImageUrl = app.resolveImageUrl(post.coverImageUrl)
+          if (post.eventTime) post.eventTime = post.eventTime.split('T')[0]
+          if (post.publishedAt) post.publishedAt = post.publishedAt.split('T')[0]
           this.setData({ post })
+        } else {
+          wx.showToast({ title: res.data.message || '加载失败', icon: 'none' })
         }
       },
-      fail: () => wx.showToast({ title: '加载失败', icon: 'none' })
+      fail: () => wx.showToast({ title: '网络请求失败', icon: 'none' })
     })
   },
   // 申请认领：弹窗输入私密特征后提交

@@ -7,8 +7,10 @@ import com.shigui.dto.CreatePostRequest;
 import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
+import com.shigui.entity.ClaimRecord;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.entity.PostImage;
+import com.shigui.mapper.ClaimRecordMapper;
 import com.shigui.mapper.LostFoundPostMapper;
 import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.AppUserService;
@@ -35,14 +37,17 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
     private final AppUserService appUserService;
     private final PostImageMapper postImageMapper;
     private final FileStorageService fileStorageService;
+    private final ClaimRecordMapper claimRecordMapper;
 
     public LostFoundPostServiceImpl(
             AppUserService appUserService,
             PostImageMapper postImageMapper,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            ClaimRecordMapper claimRecordMapper) {
         this.appUserService = appUserService;
         this.postImageMapper = postImageMapper;
         this.fileStorageService = fileStorageService;
+        this.claimRecordMapper = claimRecordMapper;
     }
 
     /** 发布单据：封禁校验、参数校验、保存单据和关联图片 */
@@ -78,16 +83,30 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return toResponse(post, request.getImageUrls());
     }
 
-    /** 获取详情：非本人只能查看 MATCHING 状态的公开单据 */
+    /** 获取详情：本人、认领通过者、或 MATCHING 状态公开可见 */
     @Override
     public PostResponse getDetail(Long postId, Long currentUserId) {
         LostFoundPost post = getById(postId);
         if (post == null) {
             throw new IllegalArgumentException("单据不存在: " + postId);
         }
-        // 非本人只能看已审核通过的公开单据
-        if (!"MATCHING".equals(post.getStatus()) && !post.getUserId().equals(currentUserId)) {
-            throw new IllegalArgumentException("单据不存在: " + postId);
+        if (post.getUserId().equals(currentUserId)) {
+            return toResponse(post);
+        }
+        // 认领审核通过者也可查看
+        if (currentUserId > 0) {
+            Long verifiedClaim = claimRecordMapper.selectCount(new LambdaQueryWrapper<ClaimRecord>()
+                    .eq(ClaimRecord::getPostId, postId)
+                    .eq(ClaimRecord::getClaimantUserId, currentUserId)
+                    .eq(ClaimRecord::getStatus, "VERIFIED")
+                    .eq(ClaimRecord::getDeleted, 0));
+            if (verifiedClaim != null && verifiedClaim > 0) {
+                return toResponse(post);
+            }
+        }
+        // 非本人只能看 MATCHING 状态的公开单据
+        if (!"MATCHING".equals(post.getStatus())) {
+            throw new IllegalArgumentException("单据不存在或暂时不可见: " + postId);
         }
         return toResponse(post);
     }

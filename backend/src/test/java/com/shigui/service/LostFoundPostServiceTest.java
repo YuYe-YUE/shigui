@@ -13,6 +13,7 @@ import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.entity.PostImage;
+import com.shigui.mapper.ClaimRecordMapper;
 import com.shigui.mapper.LostFoundPostMapper;
 import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.impl.LostFoundPostServiceImpl;
@@ -54,13 +55,16 @@ class LostFoundPostServiceTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private ClaimRecordMapper claimRecordMapper;
+
     private LostFoundPostService lostFoundPostService;
 
     @BeforeEach
     void setUp() {
         ensureTableInfoInitialized();
         lenient().when(fileStorageService.isStoredPostImage(anyString())).thenReturn(true);
-        LostFoundPostServiceImpl impl = new LostFoundPostServiceImpl(appUserService, postImageMapper, fileStorageService);
+        LostFoundPostServiceImpl impl = new LostFoundPostServiceImpl(appUserService, postImageMapper, fileStorageService, claimRecordMapper);
         lostFoundPostService = impl;
         injectBaseMapper(impl);
     }
