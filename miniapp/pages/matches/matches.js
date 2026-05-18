@@ -16,7 +16,8 @@ Page({
           const records = res.data.data.records || []
           this.setData({ matches: this.data.page === 1 ? records : [...this.data.matches, ...records] })
         }
-      }
+      },
+      fail: () => wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
   // 点击匹配项跳转帖子详情

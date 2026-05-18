@@ -16,7 +16,8 @@ Page({
           if (post.coverImageUrl) post.coverImageUrl = app.resolveImageUrl(post.coverImageUrl)
           this.setData({ post })
         }
-      }
+      },
+      fail: () => wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
   // 申请认领：弹窗输入私密特征后提交

@@ -16,7 +16,8 @@ Page({
           const records = res.data.data.records || []
           this.setData({ claims: this.data.page === 1 ? records : [...this.data.claims, ...records] })
         }
-      }
+      },
+      fail: () => wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
   // 确认收到物品
@@ -29,7 +30,8 @@ Page({
       success: (res) => {
         if (res.data.code === 200) { wx.showToast({ title: '已确认收到', icon: 'success' }); this.setData({ page: 1 }); this.loadClaims() }
         else wx.showToast({ title: res.data.message || '操作失败', icon: 'none' })
-      }
+      },
+      fail: () => wx.showToast({ title: '网络错误', icon: 'none' })
     })
   },
   // 点击跳转帖子详情

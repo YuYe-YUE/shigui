@@ -16,7 +16,8 @@ Page({
           const records = res.data.data.records || []
           this.setData({ notifications: this.data.page === 1 ? records : [...this.data.notifications, ...records] })
         }
-      }
+      },
+      fail: () => wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
   // 点击通知跳转到匹配详情
