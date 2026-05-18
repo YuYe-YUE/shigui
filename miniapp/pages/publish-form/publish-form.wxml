@@ -19,7 +19,7 @@
   </view>
 
   <view class="form-group">
-    <view class="form-label">校园区域</view>
+    <view class="form-label">校园区域 <text class="required">*</text></view>
     <input class="form-input" placeholder="如：南校区" data-field="campusArea" bindinput="setField" value="{{form.campusArea}}" />
   </view>
 
@@ -58,6 +58,18 @@
   </view>
 
   <view class="form-group">
+    <view class="form-label">物品图片</view>
+    <view class="image-grid">
+      <view class="image-item" wx:for="{{form.imageFiles}}" wx:key="tempFilePath">
+        <image class="image-thumb" src="{{item.tempFilePath}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" />
+        <button class="image-remove" size="mini" data-index="{{index}}" bindtap="removeImage">删除</button>
+      </view>
+      <button wx:if="{{form.imageFiles.length < 3}}" class="image-add" bindtap="chooseImages">添加图片</button>
+    </view>
+    <view class="image-hint">{{uploadingImages ? '图片上传中...' : '最多 3 张，提交时自动上传'}}</view>
+  </view>
+
+  <view class="form-group">
     <view class="form-label">非公开特征</view>
     <textarea class="form-textarea" placeholder="只有真正的物主才知道的信息，用于核验身份" data-field="privateFeature" bindinput="setField" value="{{form.privateFeature}}" />
   </view>
@@ -67,5 +79,5 @@
     <input class="form-input" placeholder="物品现在存放在哪里" data-field="storageLocation" bindinput="setField" value="{{form.storageLocation}}" />
   </view>
 
-  <button class="submit-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交发布</button>
+  <button class="submit-btn" loading="{{submitting || uploadingImages}}" disabled="{{submitting || uploadingImages}}" bindtap="submit">提交发布</button>
 </view>

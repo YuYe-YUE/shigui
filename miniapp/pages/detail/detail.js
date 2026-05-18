@@ -35,5 +35,16 @@ Page({
   openChat() {
     if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
     wx.navigateTo({ url: `/pages/chat/chat?postId=${this.data.id}` })
+  },
+  previewImage(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const urls = (this.data.post && this.data.post.imageUrls) || []
+    if (!urls.length) {
+      return
+    }
+    wx.previewImage({
+      current: urls[index] || urls[0],
+      urls
+    })
   }
 })

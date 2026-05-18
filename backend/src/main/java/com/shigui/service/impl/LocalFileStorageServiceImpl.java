@@ -2,6 +2,7 @@ package com.shigui.service.impl;
 
 import com.shigui.dto.FileUploadResponse;
 import com.shigui.service.FileStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,9 +32,10 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
     private final String publicPrefix;
     private final Clock clock;
 
+    @Autowired
     public LocalFileStorageServiceImpl(
-            @Value("${app.file.upload-dir:" + DEFAULT_UPLOAD_DIR + "}") String uploadDir,
-            @Value("${app.file.public-prefix:" + DEFAULT_PUBLIC_PREFIX + "}") String publicPrefix) {
+            @Value("${app.file.upload-dir:uploads}") String uploadDir,
+            @Value("${app.file.public-prefix:/uploads}") String publicPrefix) {
         this(Path.of(uploadDir), publicPrefix, Clock.systemDefaultZone());
     }
 
