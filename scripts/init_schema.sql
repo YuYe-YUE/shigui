@@ -70,12 +70,26 @@ CREATE TABLE claim_record (
     post_id BIGINT NOT NULL,
     claimant_user_id BIGINT NOT NULL COMMENT '发起认领的用户',
     private_feature_answer TEXT COMMENT '失主填写的私密特征',
-    status VARCHAR(32) DEFAULT 'PENDING' COMMENT 'PENDING/VERIFIED/REJECTED/RETURNING/COMPLETED',
+    status VARCHAR(32) DEFAULT 'PENDING_AI_REVIEW' COMMENT 'PENDING_AI_REVIEW/PENDING_ADMIN_REVIEW/VERIFIED/REJECTED/COMPLETED',
+    ai_decision VARCHAR(32) DEFAULT '',
+    ai_confidence DECIMAL(5,4) DEFAULT 0,
+    ai_reason TEXT,
+    admin_reason VARCHAR(512) DEFAULT '',
+    verified_at DATETIME DEFAULT NULL,
+    completed_at DATETIME DEFAULT NULL,
     deleted TINYINT DEFAULT 0,
+    active_claim_post_id BIGINT GENERATED ALWAYS AS (
+        CASE
+            WHEN deleted = 0 AND status IN ('PENDING_AI_REVIEW', 'PENDING_ADMIN_REVIEW', 'VERIFIED') THEN post_id
+            ELSE NULL
+        END
+    ) STORED,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_post_id (post_id),
-    INDEX idx_claimant (claimant_user_id)
+    INDEX idx_claimant (claimant_user_id),
+    INDEX idx_status (status),
+    UNIQUE KEY uk_active_claim_post (active_claim_post_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 智能匹配结果
