@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 拾归 (Shi-Gui) — 校园失物招领系统，中山大学第19组课程项目。全部 8 个 Sprint 已完成。
 
 - **用户端**: 微信小程序（12 页面），面向失主和拾捡者
-- **管理端**: Web 后台 (Vue 3 + Vite + TypeScript + Element Plus, 5 页面)，面向校方保卫处管理员
+- **管理端**: Web 后台 (Vue 3 + Vite + TypeScript + Element Plus, 6 页面)，面向校方保卫处管理员
 - **后端**: 105 测试，BUILD SUCCESS
 - 设计文档在 `docs/`、`docs/superpowers/specs/`、`docs/superpowers/plans/`
 
@@ -94,7 +94,7 @@ mysql -u root -p < scripts/seed_data.sql
 | `PUT /api/admin/users/{id}/ban` / `unban` | 封禁/解封 |
 | `GET /api/admin/matches` | 匹配列表 |
 | `GET /api/admin/claims` | 认领列表 |
-| `POST /api/admin/claims/{id}/verify` / `reject` | 认领审核 |
+| `PUT /api/admin/claims/{id}/approve` / `reject` | 认领审核 |
 | `POST /api/posts` | 发布单据 |
 | `GET /api/posts` | 公开列表 |
 | `GET /api/posts/mine` | 我的记录 |
@@ -121,7 +121,7 @@ mysql -u root -p < scripts/seed_data.sql
 
 ## 当前状态
 
-- `backend/`: 105 tests, 11 Controller, 12 Service, 10 Entity, 12 Mapper
+- `backend/`: 105 tests, 9 Controller, 12 Service, 11 Entity, 10 Mapper
 - `admin-web/`: 登录/仪表盘/内容审核/匹配结果/用户管理/认领审核 6 页面
-- `miniapp/`: 12 页面 + post-card 组件 + 20 图标 + 3 node 测试
+- `miniapp/`: 11 页面 + post-card 组件 + 20 图标 + 3 node 测试
 - `scripts/`: 建表 + 种子数据（4 用户 + 40 单据含坐标）
