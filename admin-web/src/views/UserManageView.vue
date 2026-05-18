@@ -10,6 +10,7 @@ const loading = ref(false)
 
 onMounted(() => loadUsers())
 
+// 加载用户列表：分页请求后端用户数据。
 async function loadUsers() {
   loading.value = true
   try {
@@ -23,6 +24,7 @@ async function loadUsers() {
   }
 }
 
+// 封禁用户：调封禁接口后刷新列表。
 async function banUser(id: number) {
   try {
     await api.put(`/api/admin/users/${id}/ban`)
@@ -31,6 +33,7 @@ async function banUser(id: number) {
   } catch { /* interceptor shows error */ }
 }
 
+// 解封用户：调解封接口后刷新列表。
 async function unbanUser(id: number) {
   try {
     await api.put(`/api/admin/users/${id}/unban`)

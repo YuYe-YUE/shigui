@@ -10,6 +10,7 @@ const loading = ref(false)
 
 onMounted(() => loadMatches())
 
+// 加载匹配记录列表：分页请求后端匹配数据。
 async function loadMatches() {
   loading.value = true
   try {
@@ -23,6 +24,7 @@ async function loadMatches() {
   }
 }
 
+// 查看单据详情：弹窗展示失物单或招领单的完整信息。
 async function viewPost(id: number, title: string) {
   try {
     const res = await api.get(`/api/admin/posts/${id}`)

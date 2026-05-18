@@ -11,6 +11,7 @@ const stats = ref({
 })
 const loading = ref(false)
 
+// 仪表盘统计卡片配置：由后端返回的 stats 数据动态生成。
 const cards = computed(() => [
   { title: '注册用户', value: stats.value.registeredUsers },
   { title: '匹配中单据', value: stats.value.matchingPosts },
@@ -21,6 +22,7 @@ const cards = computed(() => [
 
 onMounted(() => loadDashboard())
 
+// 加载仪表盘统计数据：从 /api/admin/dashboard 获取五个核心指标。
 async function loadDashboard() {
   loading.value = true
   try {

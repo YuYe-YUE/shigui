@@ -24,6 +24,7 @@ const router = createRouter({
   ],
 })
 
+// 导航守卫：未登录时强制跳转登录页，避免进入受保护页面。
 router.beforeEach((to) => {
   const token = localStorage.getItem('adminToken')
   if (!token && to.path !== '/login') {

@@ -11,6 +11,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// 响应拦截器：统一处理业务错误和 401 未授权。
 api.interceptors.response.use(
   (res) => {
     if (res.data.code !== 200) {

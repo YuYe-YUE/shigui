@@ -11,12 +11,14 @@ const loading = ref(false)
 
 onMounted(() => loadPosts())
 
+// 切换标签页：重置页码并加载对应状态的单据列表。
 function switchTab(tab: string) {
   activeTab.value = tab
   page.value = 1
   loadPosts()
 }
 
+// 加载帖子列表：根据当前标签和分页参数请求后端。
 async function loadPosts() {
   loading.value = true
   try {
@@ -31,6 +33,7 @@ async function loadPosts() {
   }
 }
 
+// 查看单据详情：弹窗展示描述、私密特征、暂存地点和图片。
 async function viewDetail(id: number) {
   try {
     const res = await api.get(`/api/admin/posts/${id}`)
@@ -48,6 +51,7 @@ async function viewDetail(id: number) {
   }
 }
 
+// 审核通过：确认后调审批接口，单据进入匹配池。
 async function approve(id: number) {
   try {
     await ElMessageBox.confirm('确认审核通过该单据？通过后将进入匹配池。', '审核通过', { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'success' })
@@ -57,6 +61,7 @@ async function approve(id: number) {
   } catch { /* 用户取消或接口错误 */ }
 }
 
+// 删除单据：二次确认并填写删除原因后调接口。
 async function deletePost(id: number) {
   try {
     await ElMessageBox.confirm('确认删除该单据？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })

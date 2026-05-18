@@ -9,6 +9,7 @@ const total = ref(0)
 const status = ref('PENDING_ADMIN_REVIEW')
 const loading = ref(false)
 
+// 认领状态筛选选项，对应后端 claim_record.status 枚举值。
 const statusOptions = [
   { label: '待人工审核', value: 'PENDING_ADMIN_REVIEW' },
   { label: 'AI 审核中', value: 'PENDING_AI_REVIEW' },
@@ -20,6 +21,7 @@ const statusOptions = [
 
 onMounted(() => loadClaims())
 
+// 加载认领列表：按状态和分页参数请求后端。
 async function loadClaims() {
   loading.value = true
   try {
@@ -33,17 +35,20 @@ async function loadClaims() {
   }
 }
 
+// 切换筛选状态时重置页码并重新加载数据。
 function resetPageAndLoad() {
   page.value = 1
   loadClaims()
 }
 
+// 通过认领申请：调审批接口后刷新列表。
 async function approve(row: any) {
   await api.put(`/api/admin/claims/${row.id}/approve`)
   ElMessage.success('已通过认领申请')
   loadClaims()
 }
 
+// 拒绝认领申请：弹窗输入拒绝原因后调接口。
 async function reject(row: any) {
   const reason = await ElMessageBox.prompt('请输入拒绝原因', '拒绝认领', {
     confirmButtonText: '拒绝',

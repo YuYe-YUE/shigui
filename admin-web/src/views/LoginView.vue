@@ -6,6 +6,7 @@ const auth = useAuthStore()
 const username = ref('')
 const password = ref('')
 
+// 登录按钮点击：调用 auth store 的 login 方法，失败时静默处理（弹窗由 store 控制）。
 function handleLogin() {
   auth.login(username.value, password.value).catch(() => {})
 }
