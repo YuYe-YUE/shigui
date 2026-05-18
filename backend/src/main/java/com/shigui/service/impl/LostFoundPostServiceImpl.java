@@ -90,25 +90,23 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         if (post == null) {
             throw new IllegalArgumentException("单据不存在: " + postId);
         }
-        if (post.getUserId().equals(currentUserId)) {
-            return toResponse(post);
-        }
-        // 认领审核通过者也可查看
-        if (currentUserId > 0) {
-            Long verifiedClaim = claimRecordMapper.selectCount(new LambdaQueryWrapper<ClaimRecord>()
+        boolean isOwner = post.getUserId().equals(currentUserId);
+        boolean hasVerifiedClaim = false;
+        if (currentUserId > 0 && !isOwner) {
+            Long count = claimRecordMapper.selectCount(new LambdaQueryWrapper<ClaimRecord>()
                     .eq(ClaimRecord::getPostId, postId)
                     .eq(ClaimRecord::getClaimantUserId, currentUserId)
                     .eq(ClaimRecord::getStatus, "VERIFIED")
                     .eq(ClaimRecord::getDeleted, 0));
-            if (verifiedClaim != null && verifiedClaim > 0) {
-                return toResponse(post);
-            }
+            hasVerifiedClaim = count != null && count > 0;
         }
-        // 非本人只能看 MATCHING 状态的公开单据
-        if (!"MATCHING".equals(post.getStatus())) {
+        if (!isOwner && !hasVerifiedClaim && !"MATCHING".equals(post.getStatus())) {
             throw new IllegalArgumentException("单据不存在或暂时不可见: " + postId);
         }
-        return toResponse(post);
+        PostResponse response = toResponse(post);
+        // FOUND 招领单：认领通过后才能联系对方。LOST 寻物单：非发布者可直接联系
+        response.setCanChat(!isOwner && ("LOST".equals(post.getPostType()) || hasVerifiedClaim));
+        return response;
     }
 
     /** 公开列表：按类型/分类/校区/关键字筛选已审核的 MATCHING 单据 */

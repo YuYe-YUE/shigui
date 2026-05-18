@@ -22,4 +22,5 @@ public class PostResponse {
     private String status;
     private String coverImageUrl;
     private List<String> imageUrls;
+    private Boolean canChat;
 }

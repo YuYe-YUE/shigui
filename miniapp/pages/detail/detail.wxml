@@ -2,8 +2,9 @@
 <view class="container" wx:if="{{post}}">
   <!-- 顶部英雄区 (Hero Section) -->
   <view class="hero-section {{post.postType === 'LOST' ? 'hero-lost' : 'hero-found'}}">
-    <image class="hero-icon" src="/assets/icons/{{post.postType === 'LOST' ? 'lost-large' : 'found-large'}}.svg" />
-    <view class="hero-status">{{post.status === 'MATCHING' ? (post.postType === 'LOST' ? '正在寻找物品' : '等待失主认领') : post.status}}</view>
+    <image class="hero-icon" wx:if="{{!post.imageUrls || post.imageUrls.length === 0}}" src="/assets/icons/{{post.postType === 'LOST' ? 'lost-large' : 'found-large'}}.svg" />
+    <image class="hero-image" wx:else src="{{post.imageUrls[0]}}" mode="aspectFill" />
+    <view class="hero-status" wx:if="{{!post.imageUrls || post.imageUrls.length === 0}}">{{post.status === 'MATCHING' ? (post.postType === 'LOST' ? '正在寻找物品' : '等待失主认领') : post.status}}</view>
   </view>
 
   <!-- 核心信息卡片 -->
@@ -50,8 +51,8 @@
   </view>
 
   <!-- 底部悬浮操作栏 (FAB) -->
-  <view class="fab-bar">
-    <button wx:if="{{post && post.postType === 'FOUND' && post.status === 'MATCHING'}}" class="btn-primary" bindtap="applyClaim">申请认领</button>
-    <button class="btn-secondary" bindtap="openChat">联系对方</button>
+  <view class="fab-bar" wx:if="{{post}}">
+    <button wx:if="{{post.canChat}}" class="btn-primary" bindtap="openChat">联系对方</button>
+    <button wx:elif="{{post.postType === 'FOUND'}}" class="btn-primary" bindtap="applyClaim">申请认领</button>
   </view>
 </view>
