@@ -121,7 +121,7 @@ mysql -u root -p < scripts/seed_data.sql
 
 ## 当前状态
 
-- `backend/`: 105 tests, 9 Controller, 12 Service, 11 Entity, 10 Mapper
+- `backend/`: 112 tests (含 1 端到端), 9 Controller, 12 Service, 11 Entity, 10 Mapper
 - `admin-web/`: 登录/仪表盘/内容审核/匹配结果/用户管理/认领审核 6 页面
 - `miniapp/`: 11 页面 + post-card 组件 + 20 图标 + 3 node 测试
 - `scripts/`: 建表 + 种子数据（4 用户 + 40 单据含坐标）
