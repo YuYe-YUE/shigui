@@ -8,8 +8,10 @@ import com.shigui.entity.AppUser;
 import com.shigui.entity.ChatMessage;
 import com.shigui.entity.ChatSession;
 import com.shigui.entity.LostFoundPost;
+import com.shigui.entity.ClaimRecord;
 import com.shigui.mapper.ChatMessageMapper;
 import com.shigui.mapper.ChatSessionMapper;
+import com.shigui.mapper.ClaimRecordMapper;
 import com.shigui.service.AppUserService;
 import com.shigui.service.ChatService;
 import com.shigui.service.LostFoundPostService;
@@ -29,15 +31,18 @@ public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession>
 
     private final ChatSessionMapper chatSessionMapper;
     private final ChatMessageMapper chatMessageMapper;
+    private final ClaimRecordMapper claimRecordMapper;
     private final LostFoundPostService lostFoundPostService;
     private final AppUserService appUserService;
 
     public ChatServiceImpl(ChatSessionMapper chatSessionMapper,
                            ChatMessageMapper chatMessageMapper,
+                           ClaimRecordMapper claimRecordMapper,
                            LostFoundPostService lostFoundPostService,
                            AppUserService appUserService) {
         this.chatSessionMapper = chatSessionMapper;
         this.chatMessageMapper = chatMessageMapper;
+        this.claimRecordMapper = claimRecordMapper;
         this.lostFoundPostService = lostFoundPostService;
         this.appUserService = appUserService;
     }
@@ -60,6 +65,18 @@ public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession>
         }
         if (!"MATCHING".equals(post.getStatus()) && !"CLAIMING".equals(post.getStatus()) && !"RETURNING".equals(post.getStatus())) {
             throw new IllegalArgumentException("当前单据不可创建会话");
+        }
+
+        // 招领单：必须先提交认领申请并通过审核（VERIFIED），才能联系拾获者
+        if (FOUND.equals(post.getPostType())) {
+            Long count = claimRecordMapper.selectCount(new LambdaQueryWrapper<ClaimRecord>()
+                    .eq(ClaimRecord::getPostId, postId)
+                    .eq(ClaimRecord::getClaimantUserId, userId)
+                    .eq(ClaimRecord::getStatus, "VERIFIED")
+                    .eq(ClaimRecord::getDeleted, 0));
+            if (count == null || count == 0) {
+                throw new IllegalArgumentException("请先申请认领，审核通过后才能联系对方");
+            }
         }
 
         ChatSession existing = chatSessionMapper.selectOne(new LambdaQueryWrapper<ChatSession>()

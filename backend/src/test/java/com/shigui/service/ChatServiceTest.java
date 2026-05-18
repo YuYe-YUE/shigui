@@ -10,6 +10,7 @@ import com.shigui.entity.ChatSession;
 import com.shigui.entity.LostFoundPost;
 import com.shigui.mapper.ChatMessageMapper;
 import com.shigui.mapper.ChatSessionMapper;
+import com.shigui.mapper.ClaimRecordMapper;
 import com.shigui.service.impl.ChatServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,12 +39,14 @@ class ChatServiceTest {
     private LostFoundPostService lostFoundPostService;
     @Mock
     private AppUserService appUserService;
+    @Mock
+    private ClaimRecordMapper claimRecordMapper;
 
     private ChatServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ChatServiceImpl(chatSessionMapper, chatMessageMapper, lostFoundPostService, appUserService);
+        service = new ChatServiceImpl(chatSessionMapper, chatMessageMapper, claimRecordMapper, lostFoundPostService, appUserService);
         injectBaseMapper(service, chatSessionMapper);
     }
 
@@ -52,6 +55,7 @@ class ChatServiceTest {
         LostFoundPost post = post("FOUND", 1L);
         when(appUserService.getByIdOrThrow(2L)).thenReturn(user("NORMAL"));
         when(lostFoundPostService.getById(10L)).thenReturn(post);
+        when(claimRecordMapper.selectCount(any())).thenReturn(1L); // 已有认领通过
         when(chatSessionMapper.selectOne(any(), eq(true))).thenReturn(null);
         when(chatSessionMapper.insert(any(ChatSession.class))).thenAnswer(inv -> {
             ChatSession session = inv.getArgument(0);
