@@ -1,10 +1,13 @@
+// 聊天页：创建或恢复会话，支持发送和拉取消息
 const app = getApp()
 Page({
   data: { sessionId: '', messages: [], inputText: '' },
+  // 页面加载，根据 postId 创建或打开聊天会话
   onLoad(options) {
     this.setData({ postId: options.postId })
     this.initSession()
   },
+  // 创建新会话或获取已有会话 ID
   initSession() {
     wx.request({
       url: `${app.globalData.baseUrl}/api/chat/sessions`, method: 'POST',
@@ -15,6 +18,7 @@ Page({
       }
     })
   },
+  // 加载会话中的历史消息
   loadMessages() {
     wx.request({
       url: `${app.globalData.baseUrl}/api/chat/sessions/${this.data.sessionId}/messages`,
@@ -22,7 +26,9 @@ Page({
       success: (res) => { if (res.data.code === 200) this.setData({ messages: res.data.data }) }
     })
   },
+  // 输入框内容变更
   setInput(e) { this.setData({ inputText: e.detail.value }) },
+  // 发送消息，发送后刷新消息列表
   send() {
     if (!this.data.inputText.trim()) return
     wx.request({

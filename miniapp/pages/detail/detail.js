@@ -1,7 +1,10 @@
+// 帖子详情页：展示完整信息，支持认领申请、联系和图片预览
 const app = getApp()
 Page({
   data: { post: null, id: '' },
+  // 加载页面，根据 id 参数拉取帖子详情
   onLoad(options) { this.setData({ id: options.id }); this.loadDetail() },
+  // 从后端获取帖子详情，解析图片地址
   loadDetail() {
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts/${this.data.id}`,
@@ -16,6 +19,7 @@ Page({
       }
     })
   },
+  // 申请认领：弹窗输入私密特征后提交
   applyClaim() {
     if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
     wx.showModal({
@@ -39,10 +43,12 @@ Page({
       }
     })
   },
+  // 打开聊天页面
   openChat() {
     if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
     wx.navigateTo({ url: `/pages/chat/chat?postId=${this.data.id}` })
   },
+  // 预览帖子图片
   previewImage(e) {
     const index = Number(e.currentTarget.dataset.index)
     const urls = (this.data.post && this.data.post.imageUrls) || []

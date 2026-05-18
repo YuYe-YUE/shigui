@@ -1,3 +1,4 @@
+// 地图页：展示校园内招领物品的图钉位置，点击可查看详情
 const app = getApp()
 const EAST_CAMPUS_CENTER = {
   latitude: 23.06,
@@ -15,10 +16,12 @@ Page({
     loading: false
   },
 
+  // 页面加载时获取地图点位数据
   onLoad() {
     this.loadMapPoints()
   },
 
+  // 请求后端地图点位接口，构建 marker 数组
   loadMapPoints() {
     this.setData({ loading: true })
     wx.request({
@@ -91,6 +94,7 @@ Page({
     })
   },
 
+  // 根据物品分类返回对应 emoji 图标
   getCategoryLabel(category) {
     const map = {
       '证件': '📇',
@@ -104,6 +108,7 @@ Page({
     return map[category] || '📦'
   },
 
+  // 将事件时间格式化为可读字符串
   formatEventTime(eventTime) {
     if (!eventTime) {
       return '时间未知'
@@ -111,17 +116,20 @@ Page({
     return eventTime.replace('T', ' ')
   },
 
+  // 点击图钉时选中对应帖子，弹出气泡
   onMarkerTap(e) {
     const id = e.detail.markerId
     this.setData({ selectedPost: this.data.postsById[id] || null })
   },
 
+  // 从弹窗跳转到帖子详情页
   goDetail() {
     if (this.data.selectedPost) {
       wx.navigateTo({ url: `/pages/detail/detail?id=${this.data.selectedPost.id}` })
     }
   },
 
+  // 关闭弹窗
   hidePopup() {
     this.setData({ selectedPost: null })
   }

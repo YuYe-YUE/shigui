@@ -1,8 +1,12 @@
+// 认领记录页：展示用户发起的认领申请及其处理状态
 const app = getApp()
 Page({
   data: { claims: [], page: 1 },
+  // 每次页面显示时重新加载认领列表
   onShow() { this.setData({ page: 1 }); this.loadClaims() },
+  // 触底翻页
   onReachBottom() { this.setData({ page: this.data.page + 1 }); this.loadClaims() },
+  // 请求当前用户的认领记录，支持分页
   loadClaims() {
     wx.request({
       url: `${app.globalData.baseUrl}/api/claims/mine?page=${this.data.page}&size=10`,
@@ -15,6 +19,7 @@ Page({
       }
     })
   },
+  // 确认收到物品
   confirmReceive(e) {
     const id = e.currentTarget.dataset.id
     wx.request({
@@ -27,5 +32,6 @@ Page({
       }
     })
   },
+  // 点击跳转帖子详情
   goDetail(e) { wx.navigateTo({ url: `/pages/detail/detail?id=${e.currentTarget.dataset.postId}` }) }
 })

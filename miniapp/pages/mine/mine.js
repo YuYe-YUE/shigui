@@ -1,3 +1,4 @@
+// 个人中心页：用户信息、登录、以及各项功能入口
 const app = getApp()
 
 Page({
@@ -5,10 +6,12 @@ Page({
     userInfo: null
   },
 
+  // 每次页面显示时刷新用户信息
   onShow() {
     this.loadUserInfo()
   },
 
+  // 从后端获取当前登录用户的信息
   loadUserInfo() {
     const token = app.globalData.token
     if (!token) {
@@ -29,6 +32,7 @@ Page({
     })
   },
 
+  // 微信登录：获取 code 后调用后端接口完成登录
   wxLogin() {
     wx.login({
       success: (res) => {
@@ -51,28 +55,35 @@ Page({
     })
   },
 
+  // 跳转「我的记录」
   goMyPosts() {
     wx.navigateTo({ url: '/pages/my-posts/my-posts' })
   },
 
+  // 跳转「我的寻物」
   goMyLostPosts() {
     wx.navigateTo({ url: '/pages/my-posts/my-posts?type=lost' })
   },
 
+  // 跳转「我的招领」
   goMyFoundPosts() {
     wx.navigateTo({ url: '/pages/my-posts/my-posts?type=found' })
   },
 
+  // 跳转匹配列表
   goMatches() {
     wx.navigateTo({ url: '/pages/matches/matches' })
   },
 
+  // 跳转通知列表
   goNotifications() {
     wx.navigateTo({ url: '/pages/notifications/notifications' })
   },
 
+  // 跳转认领记录
   goClaims() { wx.navigateTo({ url: '/pages/claims/claims' }) },
 
+  // 未实现功能的占位提示
   onTapStub(e) {
     wx.showToast({ title: e.currentTarget.dataset.msg, icon: 'none' })
   }

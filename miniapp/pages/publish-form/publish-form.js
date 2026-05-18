@@ -1,3 +1,4 @@
+// 发布表单页：填写物品信息并提交发布，支持图片上传和地图标注
 const app = getApp()
 const EAST_CAMPUS_COORDS = {
   latitude: 23.06,
@@ -28,6 +29,7 @@ Page({
     uploadingImages: false
   },
 
+  // 加载页面，根据 type 参数设置寻物/招领模式
   onLoad(options) {
     const type = options.type === 'found' ? 'FOUND' : 'LOST'
     this.setData({ postType: type })
@@ -36,6 +38,7 @@ Page({
     })
   },
 
+  // 表单字段变更处理
   setField(e) {
     const field = e.currentTarget.dataset.field
     const value = e.detail.value
@@ -51,11 +54,13 @@ Page({
     this.setData(nextData)
   },
 
+  // 选择物品分类（picker 控件）
   selectCategory(e) {
     const idx = e.detail.value
     this.setData({ 'form.itemCategory': this.data.categories[idx] })
   },
 
+  // 调用地图选择拾取地点，同步经纬度和地点名称
   chooseFoundLocation() {
     wx.chooseLocation({
       latitude: EAST_CAMPUS_COORDS.latitude,
@@ -90,6 +95,7 @@ Page({
     })
   },
 
+  // 清除已选的地图位置，恢复为手动输入
   clearFoundLocation() {
     const manualLocationName = this.data.form.manualLocationName
     const shouldClearLocationName = this.data.form.locationName === this.data.form.pickedLocationName
@@ -102,6 +108,7 @@ Page({
     })
   },
 
+  // 选择图片（最多 3 张）
   chooseImages() {
     const currentFiles = this.data.form.imageFiles || []
     const remaining = 3 - currentFiles.length
@@ -122,6 +129,7 @@ Page({
     })
   },
 
+  // 移除已选的某张图片
   removeImage(e) {
     const index = Number(e.currentTarget.dataset.index)
     const nextFiles = (this.data.form.imageFiles || []).filter((_, idx) => idx !== index)
@@ -132,6 +140,7 @@ Page({
     })
   },
 
+  // 预览已选的图片
   previewImage(e) {
     const index = Number(e.currentTarget.dataset.index)
     const urls = (this.data.form.imageFiles || []).map((file) => file.tempFilePath)
@@ -144,6 +153,7 @@ Page({
     })
   },
 
+  // 逐张上传图片到服务器，返回 URL 数组
   uploadImages(token) {
     const imageFiles = this.data.form.imageFiles || []
     if (!imageFiles.length) {
@@ -184,6 +194,7 @@ Page({
       .finally(() => this.setData({ uploadingImages: false }))
   },
 
+  // 发送发布请求到后端
   requestPublish(payload, token) {
     return new Promise((resolve, reject) => {
       wx.request({
@@ -204,6 +215,7 @@ Page({
     })
   },
 
+  // 提交单据：校验 -> 上传图片 -> 调用发布接口
   async submit() {
     const token = app.globalData.token
     if (!token) {
@@ -246,6 +258,7 @@ Page({
     }
   },
 
+  // 表单必填校验
   validate() {
     const f = this.data.form
     if (!f.itemName.trim()) return '请填写物品名称'
