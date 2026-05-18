@@ -1,10 +1,10 @@
 USE shi_gui;
 
 -- 测试管理员 (密码: admin123)
--- 哈希格式: salt:sha256(salt + password)
+-- 存储格式: salt:SHA256(salt + SHA256(password))。前端先 SHA-256 再发送，避免明文传输。
 -- 生成方法见 AdminUserServiceImpl.verifyPassword
 INSERT INTO admin_user (username, password_hash)
-VALUES ('admin', '1Kgtp+nNHV4Nignq9aOyjw==:42cf36653d882acf983640003bf6ab9439ae1bb8ac7653970641d43e967b86fe')
+VALUES ('admin', '1Kgtp+nNHV4Nignq9aOyjw==:cee2ba654e2a72de504be626be656b575bcef50fa834990fc097fd493c9f6584')
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
 
 -- 固定的本地种子用户，可重复执行

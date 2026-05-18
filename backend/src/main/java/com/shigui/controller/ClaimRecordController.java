@@ -30,10 +30,10 @@ public class ClaimRecordController {
         return Result.ok(claimRecordService.listMine(StpUtil.getLoginIdAsLong(), page, size));
     }
 
-    // 获取认领记录详情
+    // 获取认领记录详情，仅限申请人本人查看
     @GetMapping("/{id}")
     public Result<ClaimResponse> detail(@PathVariable Long id) {
-        return Result.ok(claimRecordService.getByIdOrThrow(id));
+        return Result.ok(claimRecordService.getByIdOrThrow(id, StpUtil.getLoginIdAsLong()));
     }
 
     // 确认收到物品，更新认领状态为已完成

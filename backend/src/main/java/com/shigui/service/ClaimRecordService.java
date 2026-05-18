@@ -14,8 +14,8 @@ public interface ClaimRecordService extends IService<ClaimRecord> {
     ClaimResponse createClaim(Long userId, CreateClaimRequest request);
     /** 获取当前用户的所有认领记录 */
     Page<ClaimResponse> listMine(Long userId, int page, int size);
-    /** 根据 ID 获取认领详情 */
-    ClaimResponse getByIdOrThrow(Long claimId);
+    /** 根据 ID 获取认领详情，校验当前用户是否为申请人 */
+    ClaimResponse getByIdOrThrow(Long claimId, Long userId);
     /** 确认收到失物，关闭认领并完成单据 */
     ClaimResponse confirmReceive(Long userId, Long claimId);
     /** 管理员分页查询所有认领申请 */

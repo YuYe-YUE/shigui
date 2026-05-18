@@ -94,10 +94,13 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return result;
     }
 
-    /** 根据 ID 获取认领详情，不存在则抛异常 */
+    /** 根据 ID 获取认领详情，校验当前用户是否为申请人 */
     @Override
-    public ClaimResponse getByIdOrThrow(Long claimId) {
+    public ClaimResponse getByIdOrThrow(Long claimId, Long userId) {
         ClaimRecord claim = requireClaim(claimId);
+        if (!claim.getClaimantUserId().equals(userId)) {
+            throw new IllegalArgumentException("只能查看自己的认领申请");
+        }
         return toResponse(claim);
     }
 
