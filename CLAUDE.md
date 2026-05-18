@@ -11,101 +11,117 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-拾归 (Shi-Gui) — 校园失物招领系统，中山大学课程项目。全新仓库，从头开发。
+拾归 (Shi-Gui) — 校园失物招领系统，中山大学第19组课程项目。全部 8 个 Sprint 已完成。
 
-- **用户端**: 微信小程序，面向失主和拾捡者
-- **管理端**: Web 后台 (Vue 3 + Vite + TypeScript)，面向校方保卫处管理员
-- 完整设计文档在 `docs/superpowers/specs/2026-05-13-shigui-system-design.md`
-- Sprint 计划在 `docs/superpowers/plans/`
+- **用户端**: 微信小程序（12 页面），面向失主和拾捡者
+- **管理端**: Web 后台 (Vue 3 + Vite + TypeScript + Element Plus, 5 页面)，面向校方保卫处管理员
+- **后端**: 105 测试，BUILD SUCCESS
+- 设计文档在 `docs/`、`docs/superpowers/specs/`、`docs/superpowers/plans/`
 
 ## 技术栈
 
 - **后端**: Spring Boot 3.5.14 + MyBatis-Plus 3.5.16 + Sa-Token 1.45.0, Java 21, Maven
-- **前端(管理端)**: Vue 3 + Vite + TypeScript + Element Plus
-- **前端(小程序)**: 原生微信小程序框架，UI 复刻自旧项目 `~/Dev/shi-gui/miniapp/`
+- **前端(管理端)**: Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + Axios
+- **前端(小程序)**: 原生微信小程序框架
 - **数据库**: MySQL 8.0
-- **测试**: JUnit 5 + Mockito (后端), Vitest + @vue/test-utils (管理端)
+- **AI**: DeepSeek v4-flash（匹配+认领预审）
+- **测试**: JUnit 5 + Mockito (后端 105 tests)
 
 ## 命令
 
-后端命令在 `backend/` 目录下执行：
+后端（在 `backend/` 下）：
 
 ```bash
-./mvnw compile              # 编译
-./mvnw test                  # 运行全部测试（当前 26 个）
-./mvnw test -Dtest=ClassName # 运行单个测试类
+./mvnw compile                         # 编译
+./mvnw test                             # 全量测试（105 个）
+./mvnw test -Dtest='!OpenAi*'          # 跳过 AI API 测试
+./mvnw test -DAI_MATCH_BASE_URL=https://api.deepseek.com -DAI_MATCH_API_KEY=sk-... -DAI_MATCH_MODEL=deepseek-v4-flash
 ```
 
-后端运行需要数据库已初始化。Maven Central 可能网络不通，用 IDEA 打开 `backend/` 直接运行 `BackendApplication.java` 即可绕过 `spring-boot:run` 的插件依赖问题。
+Maven Central 网络不通时用 IDEA 打开 `backend/` 直接 `Run BackendApplication`，绕过 `spring-boot:run` 的插件依赖。
 
-管理端在 `admin-web/` 目录下：
+管理端（在 `admin-web/` 下）：
 
 ```bash
-npm run dev    # 开发服务器 (http://localhost:5173)
-npm run build  # 构建
+npm run dev     # http://localhost:5173
+npm run build
 ```
 
-小程序用微信开发者工具打开 `miniapp/` 目录。
+小程序用微信开发者工具打开 `miniapp/`，关闭域名校验。
 
-数据库初始化：
+数据库：
 
 ```bash
-mysql -u root -pHang0611@ -e "DROP DATABASE IF EXISTS shi_gui; CREATE DATABASE shi_gui DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -pHang0611@ < scripts/init_schema.sql
-mysql -u root -pHang0611@ < scripts/seed_data.sql
+mysql -u root -p < scripts/init_schema.sql
+mysql -u root -p < scripts/seed_data.sql
 ```
+
+管理员：admin / admin123
 
 ## 架构
 
-三层分层架构：
-
-1. **Controller** — RESTful API，统一 `Result<T>` 响应体
-2. **Service** — 业务逻辑层，接口与实现分离（`service/` 接口 + `service/impl/` 实现）
-3. **Mapper** — MyBatis-Plus BaseMapper，驼峰转下划线自动映射
+三层：`Controller` (REST, `Result<T>`) → `Service` (接口+实现) → `Mapper` (MyBatis-Plus BaseMapper)
 
 包结构: `com.shigui.{common,config,controller,dto,entity,mapper,service}`
 
-关键约束：
-- Sa-Token 鉴权拦截 `/api/**`，公开端点需显式排除：`/api/user/wx-login`、`/api/admin/login`、`/api/posts/map`
-- 所有表使用逻辑删除 (`deleted TINYINT DEFAULT 0`)
-- 持久层实体与 API 之间使用 DTO 隔离（`CreatePostRequest` / `PostResponse` 等）
-- `status` 只表示业务流转（`PENDING_AUDIT`/`MATCHING`/`CLAIMING`/`RETURNING`/`COMPLETED`），删除统一用 `deleted=1`
-- 封禁用户校验在 Service 层：`app_user.status=BANNED` 时禁止发布/认领/聊天/发消息
+关键规则：
+- Sa-Token 拦截 `/api/**`，排除 `login`/`wx-login`/`posts/map`/`posts/**`
+- `/api/posts/**` 公开，POST/mine 在 Controller 内手动验登录
+- `requireAdmin()`：`loginId >= 10_000_000` 才是管理员，否则 403
+- `NotPermissionException` → 403, `NotLoginException` → 401
+- `status` 表业务流转（`PENDING_AUDIT`/`MATCHING`/`CLAIMING`/`RETURNING`/`COMPLETED`），删除用 `deleted=1`
+- `@TableLogic` 只在 audit_record/match_record/notification/chat_*/claim_record 上用，LostFoundPost 不用（管理员需看已删）
+- 封禁用户 (`BANNED`) 禁止发布/认领/聊天/发消息
+- `AdminPostService`/`MatchRecordServiceImpl.generateMatchesForPost()`/`ClaimRecordServiceImpl.createClaim()` 使用 `@Transactional`
 
 ## 数据库
 
-10 张表：`app_user`, `admin_user`, `lost_found_post`, `audit_record`, `claim_record`, `match_record`, `notification`, `chat_session`, `chat_message`, `system_config`
+10 张表：`app_user`, `admin_user`, `lost_found_post`, `audit_record`, `claim_record`, `match_record`, `notification`, `chat_session`, `chat_message`, `system_config`。外加 `post_image`（S8）。
 
-## 当前 API
+## API 全览
 
-| 端点 | Sprint | 说明 |
-|------|--------|------|
-| `POST /api/user/wx-login` | S1 | 微信登录（公开） |
-| `GET /api/user/me` | S1 | 当前用户信息 |
-| `POST /api/admin/login` | S1 | 管理员登录（公开） |
-| `POST /api/posts` | S2 | 发布单据 |
-| `GET /api/posts/{id}` | S2 | 查看单据详情 |
-| `GET /` | — | 健康检查 |
+| 端点 | 说明 |
+|------|------|
+| `POST /api/user/wx-login` | 微信登录 |
+| `GET /api/user/me` | 用户信息 |
+| `POST /api/admin/login` | 管理员登录 |
+| `GET /api/admin/dashboard` | 仪表盘统计 |
+| `GET /api/admin/posts` | 审核列表 |
+| `GET /api/admin/posts/{id}` | 单据详情 |
+| `POST /api/admin/posts/{id}/approve` | 审核通过 |
+| `DELETE /api/admin/posts/{id}` | 删除单据 |
+| `GET /api/admin/users` | 用户列表 |
+| `PUT /api/admin/users/{id}/ban` / `unban` | 封禁/解封 |
+| `GET /api/admin/matches` | 匹配列表 |
+| `GET /api/admin/claims` | 认领列表 |
+| `POST /api/admin/claims/{id}/verify` / `reject` | 认领审核 |
+| `POST /api/posts` | 发布单据 |
+| `GET /api/posts` | 公开列表 |
+| `GET /api/posts/mine` | 我的记录 |
+| `GET /api/posts/{id}` | 单据详情 |
+| `GET /api/posts/map` | 地图点位 |
+| `GET /api/matches/mine` | 我的匹配 |
+| `GET /api/notifications` | 通知列表 |
+| `POST /api/claims` | 发起认领 |
+| `GET /api/claims/mine` | 我的认领 |
+| `PUT /api/claims/{id}/confirm-receive` | 确认收到 |
+| `POST /api/chat/sessions` | 创建聊天 |
+| `GET /api/chat/sessions/{id}/messages` | 消息列表 |
+| `POST /api/chat/sessions/{id}/messages` | 发消息 |
+| `POST /api/files/upload` | 上传图片 |
+| `GET /` | 健康检查 |
 
-## 开发方法
+## Sprint 完成情况
 
-敏捷垂直切片，按 Sprint 逐个交付全栈可运行增量。7 个 Sprint：
+| S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 |
+|----|----|----|----|----|----|----|-----|
+| 微信登录 | 发布单据 | 列表筛选 | 内容审核 | 智能匹配 | 认领+聊天 | 地图图钉 | 图片上传 |
 
-| Sprint | 用例 | 状态 |
-|--------|------|------|
-| S1 | 微信登录认证 | ✅ |
-| S2 | 发布丢失/拾捡单 | ✅ |
-| S3 | 信息筛选 + 记录查看 | 待开始 |
-| S4 | 内容审核（管理端） | 待开始 |
-| S5 | 智能匹配 + 消息提醒 | 待开始 |
-| S6 | 物品验证与认领 + 匿名聊天 | 待开始 |
-| S7 | 地图图钉展示 | 待开始 |
-
-每个 Sprint 完成：后端 API + 测试 → 前端页面/组件 → 验证 → commit。
+全部 105 测试通过（2 个 AI 环境变量跳过），admin-web 构建通过。
 
 ## 当前状态
 
-- `backend/`: 26 个测试全过，6 个 Controller、4 个 Service、4 个 Entity、4 个 Mapper、3 个 Config 类
-- `admin-web/`: 登录页、仪表盘布局、路由/Auth Store/Axios 封装就绪，内容审核和用户管理页面待实现
-- `miniapp/`: 7 页面 + post-card 组件 + 17 个 SVG 图标，中大绿（#00573D）杂志卡片风。首页为占位，detail/chat/map 页面 UI 和 JS 已完整对接后端 API
-- `scripts/`: 建表 + 种子数据（管理员 admin/admin123，2 个测试用户）
+- `backend/`: 105 tests, 11 Controller, 12 Service, 10 Entity, 12 Mapper
+- `admin-web/`: 登录/仪表盘/内容审核/匹配结果/用户管理/认领审核 6 页面
+- `miniapp/`: 12 页面 + post-card 组件 + 20 图标 + 3 node 测试
+- `scripts/`: 建表 + 种子数据（4 用户 + 40 单据含坐标）
