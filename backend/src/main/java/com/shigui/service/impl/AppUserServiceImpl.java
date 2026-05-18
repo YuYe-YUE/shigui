@@ -6,6 +6,9 @@ import com.shigui.mapper.AppUserMapper;
 import com.shigui.service.AppUserService;
 import org.springframework.stereotype.Service;
 
+/**
+ * 小程序用户实现：基于 openid 的自动注册和状态管理。
+ */
 @Service
 public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> implements AppUserService {
 
@@ -39,6 +42,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         return user;
     }
 
+    /** 封禁用户：状态置为 BANNED */
     @Override
     public void banUser(Long userId) {
         AppUser user = getByIdOrThrow(userId);
@@ -46,6 +50,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         updateById(user);
     }
 
+    /** 解封用户：状态恢复为 NORMAL */
     @Override
     public void unbanUser(Long userId) {
         AppUser user = getByIdOrThrow(userId);

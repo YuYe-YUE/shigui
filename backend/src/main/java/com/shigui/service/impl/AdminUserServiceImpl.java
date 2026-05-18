@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
+/**
+ * 管理员登录实现：SHA-256 密码校验，登录后写入 Sa-Token 会话。
+ */
 @Service
 public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser> implements AdminUserService {
 

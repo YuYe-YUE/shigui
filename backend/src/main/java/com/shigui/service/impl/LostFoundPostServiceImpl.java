@@ -25,6 +25,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 失物招领单据实现：发布审批、公开/个人列表、地图点位，含图片存储关联。
+ */
 @Service
 public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, LostFoundPost> implements LostFoundPostService {
     private static final String POST_IMAGE_PREFIX = "/uploads/posts/";
@@ -42,6 +45,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         this.fileStorageService = fileStorageService;
     }
 
+    /** 发布单据：封禁校验、参数校验、保存单据和关联图片 */
     @Override
     @Transactional
     public PostResponse publish(Long userId, CreatePostRequest request) {
@@ -74,6 +78,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return toResponse(post, request.getImageUrls());
     }
 
+    /** 获取详情：非本人只能查看 MATCHING 状态的公开单据 */
     @Override
     public PostResponse getDetail(Long postId, Long currentUserId) {
         LostFoundPost post = getById(postId);
@@ -87,6 +92,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return toResponse(post);
     }
 
+    /** 公开列表：按类型/分类/校区/关键字筛选已审核的 MATCHING 单据 */
     @Override
     public Page<PostResponse> listPublic(int page, int size, String postType,
             String itemCategory, String campusArea, String keyword) {
@@ -110,6 +116,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return result;
     }
 
+    /** 我的发布记录 */
     @Override
     public Page<PostResponse> listMine(Long userId, int page, int size, String postType) {
         LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();
@@ -129,6 +136,7 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return result;
     }
 
+    /** 招领地图点位：返回所有带经纬度的 FOUND 单据 */
     @Override
     public List<MapPostResponse> listMapPosts() {
         LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();

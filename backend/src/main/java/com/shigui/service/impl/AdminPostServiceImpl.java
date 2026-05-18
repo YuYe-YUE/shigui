@@ -8,6 +8,9 @@ import com.shigui.service.MatchRecordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 管理员审核与删除：将单据置为 MATCHING/已删除，并记录审计日志、触发匹配。
+ */
 @Service
 public class AdminPostServiceImpl implements AdminPostService {
 
@@ -23,6 +26,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         this.matchRecordService = matchRecordService;
     }
 
+    /** 审核通过：状态变为 MATCHING，记录审计，触发 AI 匹配 */
     @Override
     @Transactional
     public void approvePost(Long adminId, Long postId) {
@@ -42,6 +46,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         matchRecordService.generateMatchesForPost(postId);
     }
 
+    /** 删除单据：逻辑删除，记录审计日志 */
     @Override
     @Transactional
     public void deletePost(Long adminId, Long postId, String reason) {

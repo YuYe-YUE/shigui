@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * OpenAI 兼容认领审查实现：调用大模型 API 判断认领答案与私密特征的匹配度。
+ */
 @Service
 public class OpenAiCompatibleClaimReviewClient implements AiClaimReviewClient {
     private final AiClaimReviewProperties properties;
@@ -26,6 +29,7 @@ public class OpenAiCompatibleClaimReviewClient implements AiClaimReviewClient {
         this.properties = properties;
     }
 
+    /** 调用 AI API 进行认领预审，解析 JSON 响应并脱敏原因 */
     @Override
     public AiClaimReviewResult reviewClaim(LostFoundPost foundPost, String privateFeatureAnswer) {
         validateConfig();

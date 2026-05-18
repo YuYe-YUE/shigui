@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
 
+/**
+ * OpenAI 兼容匹配实现：调用大模型 API 对目标单据与候选单据进行智能匹配评分。
+ */
 @Service
 public class OpenAiCompatibleMatchClient implements AiMatchClient {
     private final AiMatchProperties properties;
@@ -26,6 +29,7 @@ public class OpenAiCompatibleMatchClient implements AiMatchClient {
         this.properties = properties;
     }
 
+    /** 调用 AI API 排序匹配候选，解析并校验返回结果 */
     @Override
     public AiMatchResult rankMatches(LostFoundPost targetPost, List<LostFoundPost> candidates) {
         validateConfig();

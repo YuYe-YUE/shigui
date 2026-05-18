@@ -11,9 +11,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 通知实现：创建匹配通知和查询用户通知列表。
+ */
 @Service
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements NotificationService {
 
+    /** 创建匹配通知：内容包含物品名称、校区、分数和脱敏后的原因 */
     @Override
     public void createMatchNotification(Long userId, Long matchRecordId, String itemName, String campusArea, String score, String reason) {
         Notification notification = new Notification();
@@ -27,6 +31,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         save(notification);
     }
 
+    /** 获取用户通知列表（未读排前、按时间倒序） */
     @Override
     public Page<NotificationResponse> listMine(Long userId, int page, int size) {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();

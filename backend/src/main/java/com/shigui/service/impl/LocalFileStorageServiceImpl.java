@@ -18,6 +18,9 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 本地文件存储实现：将图片保存到磁盘并按日期目录编排，校验图片格式和大小。
+ */
 @Service
 public class LocalFileStorageServiceImpl implements FileStorageService {
 
@@ -45,6 +48,7 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         this.clock = clock;
     }
 
+    /** 存储图片，校验格式/大小/内容，返回可公开访问的 URL */
     @Override
     public FileUploadResponse storePostImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -82,6 +86,7 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         return response;
     }
 
+    /** 判断 URL 是否指向本系统存在的图片文件（防路径穿越） */
     @Override
     public boolean isStoredPostImage(String url) {
         if (url == null || url.isBlank()) {

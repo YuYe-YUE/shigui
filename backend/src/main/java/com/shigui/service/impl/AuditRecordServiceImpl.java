@@ -6,9 +6,13 @@ import com.shigui.mapper.AuditRecordMapper;
 import com.shigui.service.AuditRecordService;
 import org.springframework.stereotype.Service;
 
+/**
+ * 审核记录实现：记录管理员审核通过和删除操作的审计日志。
+ */
 @Service
 public class AuditRecordServiceImpl extends ServiceImpl<AuditRecordMapper, AuditRecord> implements AuditRecordService {
 
+    /** 记录审核通过操作 */
     @Override
     public void logApprove(Long adminId, Long postId) {
         AuditRecord record = new AuditRecord();
@@ -18,6 +22,7 @@ public class AuditRecordServiceImpl extends ServiceImpl<AuditRecordMapper, Audit
         save(record);
     }
 
+    /** 记录删除操作及原因 */
     @Override
     public void logDelete(Long adminId, Long postId, String reason) {
         AuditRecord record = new AuditRecord();

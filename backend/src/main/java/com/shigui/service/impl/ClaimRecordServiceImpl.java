@@ -25,6 +25,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 认领实现：状态机 PENDING_AI_REVIEW -> (PENDING_ADMIN_REVIEW / VERIFIED / REJECTED) -> COMPLETED。
+ */
 @Service
 public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, ClaimRecord> implements ClaimRecordService {
     private static final String PENDING_AI_REVIEW = "PENDING_AI_REVIEW";
@@ -48,6 +51,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         this.properties = properties;
     }
 
+    /** 提交认领：校验、AI 预审、状态流转 */
     @Override
     @Transactional
     public ClaimResponse createClaim(Long userId, CreateClaimRequest request) {
@@ -77,6 +81,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return toResponse(claim, post);
     }
 
+    /** 用户自己的认领列表 */
     @Override
     public Page<ClaimResponse> listMine(Long userId, int page, int size) {
         Page<ClaimRecord> entityPage = page(new Page<>(page, size), new LambdaQueryWrapper<ClaimRecord>()
@@ -89,12 +94,14 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return result;
     }
 
+    /** 根据 ID 获取认领详情，不存在则抛异常 */
     @Override
     public ClaimResponse getByIdOrThrow(Long claimId) {
         ClaimRecord claim = requireClaim(claimId);
         return toResponse(claim);
     }
 
+    /** 确认收到失物：认领和单据同时置为完成状态 */
     @Override
     @Transactional
     public ClaimResponse confirmReceive(Long userId, Long claimId) {
@@ -114,6 +121,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return toResponse(claim, post);
     }
 
+    /** 管理员分页查询认领列表，可按状态筛选 */
     @Override
     public Page<AdminClaimResponse> listAdminClaims(int page, int size, String status) {
         LambdaQueryWrapper<ClaimRecord> wrapper = new LambdaQueryWrapper<>();
@@ -127,6 +135,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return result;
     }
 
+    /** 管理员审核通过：认领变为 VERIFIED，单据进入 RETURNING */
     @Override
     @Transactional
     public AdminClaimResponse approveByAdmin(Long claimId) {
@@ -142,6 +151,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         return toAdminResponse(claim, post);
     }
 
+    /** 管理员拒绝认领：认领变为 REJECTED，单据回到 MATCHING */
     @Override
     @Transactional
     public AdminClaimResponse rejectByAdmin(Long claimId, String reason) {

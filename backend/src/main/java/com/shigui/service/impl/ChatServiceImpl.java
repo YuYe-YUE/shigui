@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 聊天实现：创建/复用会话、消息收发、参与者校验。
+ */
 @Service
 public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession> implements ChatService {
     private static final String ACTIVE = "ACTIVE";
@@ -39,6 +42,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession>
         this.appUserService = appUserService;
     }
 
+    /** 创建或复用会话，校验单据状态和参与者合法性 */
     @Override
     @Transactional
     public ChatSessionResponse createOrGetSession(Long userId, Long postId) {
@@ -86,6 +90,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession>
         return toSessionResponse(session, userId);
     }
 
+    /** 获取会话历史消息 */
     @Override
     public List<ChatMessageResponse> listMessages(Long userId, Long sessionId) {
         ChatSession session = requireParticipantSession(userId, sessionId);
@@ -98,6 +103,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSession>
                 .toList();
     }
 
+    /** 发送消息到会话，校验封禁和会话状态 */
     @Override
     @Transactional
     public ChatMessageResponse sendMessage(Long userId, Long sessionId, String content) {

@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 匹配实现：加载反向类型的候选单据，按规则预排序后调 AI 评分，高匹配记录入库并推送通知。
+ */
 @Service
 public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, MatchRecord> implements MatchRecordService {
 
@@ -48,6 +51,7 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
         this.properties = properties;
     }
 
+    /** 审核通过后自动触发 AI 匹配，生成匹配记录并通知双方用户 */
     @Override
     @Transactional
     public void generateMatchesForPost(Long postId) {
@@ -73,6 +77,7 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
         }
     }
 
+    /** 获取当前用户的匹配记录 */
     @Override
     public Page<MatchResponse> listMine(Long userId, int page, int size) {
         // 先查用户自己的 postId，再数据库层过滤匹配记录
@@ -101,6 +106,7 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
         return result;
     }
 
+    /** 管理员查看全部匹配记录 */
     @Override
     public Page<AdminMatchResponse> listAdminMatches(int page, int size) {
         LambdaQueryWrapper<MatchRecord> wrapper = new LambdaQueryWrapper<>();
