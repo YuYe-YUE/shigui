@@ -4,6 +4,6 @@ import java.time.LocalDateTime;
 @Data
 public class ChatMessageResponse {
     private Long id; private Long sessionId;
-    private Long senderUserId; private String content;
+    private String senderRole; private Boolean mine; private String content;
     private String msgType; private LocalDateTime createdAt;
 }

@@ -1,9 +1,13 @@
 const app = getApp()
+const EAST_CAMPUS_CENTER = {
+  latitude: 23.06,
+  longitude: 113.39
+}
 
 Page({
   data: {
-    latitude: 23.06,
-    longitude: 113.39,
+    latitude: EAST_CAMPUS_CENTER.latitude,
+    longitude: EAST_CAMPUS_CENTER.longitude,
     scale: 15,
     markers: [],
     postsById: {},
@@ -67,13 +71,10 @@ Page({
             }
           }
         })
-        const center = posts[0] || {}
         this.setData({
           markers,
           postsById,
-          selectedPost: null,
-          latitude: center.latitude || this.data.latitude,
-          longitude: center.longitude || this.data.longitude
+          selectedPost: null
         })
       },
       fail: () => {

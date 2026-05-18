@@ -14,16 +14,16 @@ public class ChatController {
 
     @PostMapping("/sessions")
     public Result<ChatSessionResponse> createSession(@RequestBody CreateChatSessionRequest request) {
-        return Result.ok(chatService.createSession(StpUtil.getLoginIdAsLong(), request));
+        return Result.ok(chatService.createOrGetSession(StpUtil.getLoginIdAsLong(), request.getPostId()));
     }
 
     @GetMapping("/sessions/{id}/messages")
     public Result<List<ChatMessageResponse>> getMessages(@PathVariable Long id) {
-        return Result.ok(chatService.getMessages(id, StpUtil.getLoginIdAsLong()));
+        return Result.ok(chatService.listMessages(StpUtil.getLoginIdAsLong(), id));
     }
 
     @PostMapping("/sessions/{id}/messages")
     public Result<ChatMessageResponse> sendMessage(@PathVariable Long id, @RequestBody SendMessageRequest request) {
-        return Result.ok(chatService.sendMessage(id, StpUtil.getLoginIdAsLong(), request));
+        return Result.ok(chatService.sendMessage(StpUtil.getLoginIdAsLong(), id, request.getContent()));
     }
 }

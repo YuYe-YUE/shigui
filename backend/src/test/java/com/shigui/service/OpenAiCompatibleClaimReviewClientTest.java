@@ -6,7 +6,7 @@ import com.shigui.service.impl.OpenAiCompatibleClaimReviewClient;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class OpenAiCompatibleClaimReviewClientTest {
     private static String value(String name) {
@@ -21,8 +21,8 @@ class OpenAiCompatibleClaimReviewClientTest {
         String baseUrl = value("AI_CLAIM_BASE_URL");
         String apiKey = value("AI_CLAIM_API_KEY");
         String model = value("AI_CLAIM_MODEL");
-        if (baseUrl == null || apiKey == null || model == null)
-            fail("AI_CLAIM_BASE_URL, AI_CLAIM_API_KEY, AI_CLAIM_MODEL must be set");
+        assumeTrue(baseUrl != null && apiKey != null && model != null,
+                "AI_CLAIM_BASE_URL, AI_CLAIM_API_KEY, AI_CLAIM_MODEL must be set");
 
         AiClaimReviewProperties p = new AiClaimReviewProperties();
         p.setEnabled(true); p.setBaseUrl(baseUrl); p.setApiKey(apiKey); p.setModel(model);

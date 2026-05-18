@@ -31,8 +31,7 @@ public class ClaimRecordController {
     }
 
     @PutMapping("/{id}/confirm-receive")
-    public Result<Void> confirmReceive(@PathVariable Long id) {
-        claimRecordService.confirmReceive(id, StpUtil.getLoginIdAsLong());
-        return Result.ok();
+    public Result<ClaimResponse> confirmReceive(@PathVariable Long id) {
+        return Result.ok(claimRecordService.confirmReceive(StpUtil.getLoginIdAsLong(), id));
     }
 }

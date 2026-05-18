@@ -12,14 +12,13 @@ import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
 import com.shigui.service.LostFoundPostService;
 import com.shigui.dto.AdminClaimResponse;
-import com.shigui.entity.ClaimRecord;
+import com.shigui.dto.RejectClaimRequest;
 import com.shigui.service.ClaimRecordService;
 import com.shigui.service.MatchRecordService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -171,52 +170,21 @@ public class AdminController {
     @GetMapping("/claims")
     public Result<Page<AdminClaimResponse>> listClaims(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status) {
         requireAdmin();
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ClaimRecord> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        wrapper.eq(ClaimRecord::getDeleted, 0).orderByDesc(ClaimRecord::getCreatedAt);
-        Page<ClaimRecord> entityPage = claimRecordService.page(new Page<>(page, size), wrapper);
-        List<AdminClaimResponse> responses = entityPage.getRecords().stream().map(claim -> {
-            AdminClaimResponse r = new AdminClaimResponse();
-            r.setId(claim.getId()); r.setPostId(claim.getPostId()); r.setStatus(claim.getStatus());
-            r.setClaimantUserId(claim.getClaimantUserId()); r.setPrivateFeatureAnswer(claim.getPrivateFeatureAnswer());
-            r.setAiDecision(claim.getAiDecision()); r.setAiConfidence(claim.getAiConfidence());
-            r.setAiReason(claim.getAiReason()); r.setCreatedAt(claim.getCreatedAt());
-            LostFoundPost post = lostFoundPostService.getById(claim.getPostId());
-            if (post != null) {
-                r.setPostTitle(post.getTitle()); r.setItemName(post.getItemName());
-                r.setItemCategory(post.getItemCategory()); r.setCampusArea(post.getCampusArea());
-                r.setLocationName(post.getLocationName()); r.setStorageLocation(post.getStorageLocation());
-                r.setPrivateFeature(post.getPrivateFeature());
-            }
-            return r;
-        }).toList();
-        Page<AdminClaimResponse> result = new Page<>(page, size);
-        result.setRecords(responses); result.setTotal(entityPage.getTotal());
-        return Result.ok(result);
+        return Result.ok(claimRecordService.listAdminClaims(page, size, status));
     }
 
-    @PostMapping("/claims/{id}/verify")
-    public Result<Void> verifyClaim(@PathVariable Long id) {
+    @PutMapping("/claims/{id}/approve")
+    public Result<AdminClaimResponse> approveClaim(@PathVariable Long id) {
         requireAdmin();
-        ClaimRecord claim = claimRecordService.getById(id);
-        if (claim == null) return Result.fail(404, "认领记录不存在");
-        claim.setStatus("VERIFIED"); claim.setVerifiedAt(java.time.LocalDateTime.now());
-        claimRecordService.updateById(claim);
-        LostFoundPost post = lostFoundPostService.getById(claim.getPostId());
-        if (post != null) { post.setStatus("CLAIMING"); lostFoundPostService.updateById(post); }
-        return Result.ok();
+        return Result.ok(claimRecordService.approveByAdmin(id));
     }
 
-    @PostMapping("/claims/{id}/reject")
-    public Result<Void> rejectClaim(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    @PutMapping("/claims/{id}/reject")
+    public Result<AdminClaimResponse> rejectClaim(@PathVariable Long id, @RequestBody RejectClaimRequest request) {
         requireAdmin();
-        ClaimRecord claim = claimRecordService.getById(id);
-        if (claim == null) return Result.fail(404, "认领记录不存在");
-        String reason = body.getOrDefault("reason", "");
-        claim.setStatus("REJECTED"); claim.setAdminReason(reason);
-        claimRecordService.updateById(claim);
-        return Result.ok();
+        return Result.ok(claimRecordService.rejectByAdmin(id, request == null ? "" : request.getReason()));
     }
 }

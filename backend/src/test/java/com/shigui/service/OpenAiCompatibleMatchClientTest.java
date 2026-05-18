@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class OpenAiCompatibleMatchClientTest {
 
@@ -26,9 +26,8 @@ class OpenAiCompatibleMatchClientTest {
         String baseUrl = value("AI_MATCH_BASE_URL");
         String apiKey = value("AI_MATCH_API_KEY");
         String model = value("AI_MATCH_MODEL");
-        if (baseUrl == null || apiKey == null || model == null) {
-            fail("AI_MATCH_BASE_URL, AI_MATCH_API_KEY, AI_MATCH_MODEL must be set via -D or env");
-        }
+        assumeTrue(baseUrl != null && apiKey != null && model != null,
+                "AI_MATCH_BASE_URL, AI_MATCH_API_KEY, AI_MATCH_MODEL must be set via -D or env");
 
         AiMatchProperties properties = new AiMatchProperties();
         properties.setEnabled(true);

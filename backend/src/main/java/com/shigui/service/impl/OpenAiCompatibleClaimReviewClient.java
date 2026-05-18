@@ -11,9 +11,11 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 public class OpenAiCompatibleClaimReviewClient implements AiClaimReviewClient {
@@ -71,10 +73,24 @@ public class OpenAiCompatibleClaimReviewClient implements AiClaimReviewClient {
             if (!List.of("APPROVE", "REJECT", "NEEDS_REVIEW").contains(result.getDecision())) {
                 throw new IllegalStateException("Unknown decision: " + result.getDecision());
             }
+            result.setConfidence(normalize(result.getConfidence()));
+            result.setReason(sanitizeReason(result.getReason()));
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse AI claim review: " + e.getMessage(), e);
         }
+    }
+
+    private BigDecimal normalize(BigDecimal confidence) {
+        if (confidence == null) return BigDecimal.ZERO;
+        return confidence.max(BigDecimal.ZERO).min(BigDecimal.ONE);
+    }
+
+    private String sanitizeReason(String reason) {
+        if (reason == null || reason.isBlank()) return "AI 已完成判断";
+        String sanitized = Pattern.compile("[A-Za-z0-9]{3,}").matcher(reason).replaceAll("***");
+        sanitized = Pattern.compile("[一二三四五六七八九零〇]{4,}").matcher(sanitized).replaceAll("***");
+        return sanitized.trim();
     }
 
     private void validateConfig() {
