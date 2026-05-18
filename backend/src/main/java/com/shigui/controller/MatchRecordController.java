@@ -7,6 +7,9 @@ import com.shigui.dto.MatchResponse;
 import com.shigui.service.MatchRecordService;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 智能匹配记录接口，提供当前用户的匹配结果查询。
+ */
 @RestController
 @RequestMapping("/api/matches")
 public class MatchRecordController {
@@ -17,6 +20,7 @@ public class MatchRecordController {
         this.matchRecordService = matchRecordService;
     }
 
+    // 分页查询当前用户的匹配记录
     @GetMapping("/mine")
     public Result<Page<MatchResponse>> mine(
             @RequestParam(defaultValue = "1") int page,

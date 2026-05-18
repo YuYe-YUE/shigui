@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 失物招领帖子接口，提供发布、查询筛选、我的记录和地图点位功能。
+ */
 @RestController
 @RequestMapping("/api/posts")
 public class LostFoundPostController {
@@ -21,6 +24,7 @@ public class LostFoundPostController {
         this.lostFoundPostService = lostFoundPostService;
     }
 
+    // 发布新帖子，须登录，新帖子进入待审核状态
     @PostMapping
     public Result<PostResponse> publish(@RequestBody CreatePostRequest request) {
         if (!StpUtil.isLogin()) {
@@ -67,6 +71,7 @@ public class LostFoundPostController {
         return Result.ok(lostFoundPostService.listMapPosts());
     }
 
+    // 获取帖子详情，已登录时包含发布者联系方式
     @GetMapping("/{id}")
     public Result<PostResponse> detail(@PathVariable Long id) {
         Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : 0L;

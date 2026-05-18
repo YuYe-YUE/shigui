@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 微信小程序用户接口，提供登录与个人信息查询功能。
+ */
 @RestController
 @RequestMapping("/api/user")
 public class AppUserController {

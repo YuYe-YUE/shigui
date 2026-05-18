@@ -7,6 +7,9 @@ import com.shigui.dto.NotificationResponse;
 import com.shigui.service.NotificationService;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 通知接口，提供当前用户的通知列表查询。
+ */
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -17,6 +20,7 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
+    // 分页查询当前用户的通知列表
     @GetMapping
     public Result<Page<NotificationResponse>> list(
             @RequestParam(defaultValue = "1") int page,

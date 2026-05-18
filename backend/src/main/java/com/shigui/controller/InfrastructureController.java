@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 基础设施接口，提供健康检查等运维端点。
+ */
 @RestController
 public class InfrastructureController {
 
