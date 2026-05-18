@@ -74,7 +74,7 @@ class ChatControllerTest {
         ChatMessageResponse message = new ChatMessageResponse();
         message.setId(7L);
         message.setSessionId(99L);
-        message.setSenderUserId(2L);
+        message.setSenderRole("LOST"); message.setMine(false);
         message.setContent("你好");
         message.setMsgType("TEXT");
         when(chatService.listMessages(2L, 99L)).thenReturn(List.of(message));
@@ -92,7 +92,7 @@ class ChatControllerTest {
         ChatMessageResponse message = new ChatMessageResponse();
         message.setId(7L);
         message.setSessionId(99L);
-        message.setSenderUserId(2L);
+        message.setSenderRole("LOST"); message.setMine(false);
         message.setContent("你好");
         message.setMsgType("TEXT");
         when(chatService.sendMessage(2L, 99L, "你好")).thenReturn(message);
