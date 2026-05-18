@@ -3,6 +3,7 @@ package com.shigui.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class PostResponse {
@@ -18,4 +19,6 @@ public class PostResponse {
     private LocalDateTime eventTime;
     private LocalDateTime publishedAt;
     private String status;
+    private String coverImageUrl;
+    private List<String> imageUrls;
 }

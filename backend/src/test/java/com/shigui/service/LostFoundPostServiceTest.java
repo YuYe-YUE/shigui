@@ -7,11 +7,14 @@ import com.baomidou.mybatisplus.core.MybatisMapperBuilderAssistant;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shigui.dto.CreatePostRequest;
+import com.shigui.dto.FileUploadResponse;
 import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
+import com.shigui.entity.PostImage;
 import com.shigui.mapper.LostFoundPostMapper;
+import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.impl.LostFoundPostServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -358,6 +361,38 @@ class LostFoundPostServiceTest {
                 .isInstanceOf(NoSuchFieldException.class);
         assertThatThrownBy(() -> MapPostResponse.class.getDeclaredField("status"))
                 .isInstanceOf(NoSuchFieldException.class);
+    }
+
+    @Test
+    void imageUploadContracts_existForDtosAndEntities() throws Exception {
+        CreatePostRequest request = new CreatePostRequest();
+        List<String> imageUrls = List.of(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg"
+        );
+        request.setImageUrls(imageUrls);
+
+        PostResponse response = new PostResponse();
+        response.setCoverImageUrl(imageUrls.get(0));
+        response.setImageUrls(imageUrls);
+
+        FileUploadResponse uploadResponse = new FileUploadResponse();
+        uploadResponse.setUrl(imageUrls.get(0));
+
+        PostImage postImage = new PostImage();
+        postImage.setPostId(100L);
+        postImage.setImageUrl(imageUrls.get(0));
+        postImage.setSortOrder(0);
+        postImage.setDeleted(0);
+
+        assertThat(request.getImageUrls()).containsExactlyElementsOf(imageUrls);
+        assertThat(response.getCoverImageUrl()).isEqualTo(imageUrls.get(0));
+        assertThat(response.getImageUrls()).containsExactlyElementsOf(imageUrls);
+        assertThat(uploadResponse.getUrl()).contains("/uploads/posts/");
+        assertThat(postImage.getPostId()).isEqualTo(100L);
+        assertThat(postImage.getImageUrl()).isEqualTo(imageUrls.get(0));
+        assertThat(PostImage.class.getDeclaredField("createdAt")).isNotNull();
+        assertThat(PostImageMapper.class).isInterface();
     }
 
     private void injectBaseMapper(LostFoundPostServiceImpl impl) {
