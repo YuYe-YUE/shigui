@@ -64,7 +64,7 @@
         <image class="image-thumb" src="{{item.tempFilePath}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" />
         <button class="image-remove" size="mini" data-index="{{index}}" bindtap="removeImage">删除</button>
       </view>
-      <button wx:if="{{form.imageFiles.length < 3}}" class="image-add" bindtap="chooseImages">添加图片</button>
+      <button wx:if="{{form.imageFiles.length < 3}}" class="image-add" bindtap="chooseImages" disabled="{{uploadingImages || submitting}}">添加图片</button>
     </view>
     <view class="image-hint">{{uploadingImages ? '图片上传中...' : '最多 3 张，提交时自动上传'}}</view>
   </view>

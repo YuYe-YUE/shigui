@@ -6,7 +6,14 @@ Page({
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts/${this.data.id}`,
       header: { satoken: app.globalData.token },
-      success: (res) => { if (res.data.code === 200) this.setData({ post: res.data.data }) }
+      success: (res) => {
+        if (res.data.code === 200) {
+          const post = res.data.data
+          if (post.imageUrls) post.imageUrls = post.imageUrls.map(u => app.resolveImageUrl(u))
+          if (post.coverImageUrl) post.coverImageUrl = app.resolveImageUrl(post.coverImageUrl)
+          this.setData({ post })
+        }
+      }
     })
   },
   applyClaim() {

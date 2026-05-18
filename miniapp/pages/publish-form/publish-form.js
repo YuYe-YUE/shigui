@@ -118,9 +118,6 @@ Page({
         this.setData({
           'form.imageFiles': nextFiles
         })
-        if ((res.tempFiles || []).length >= remaining) {
-          wx.showToast({ title: '最多上传 3 张图片', icon: 'none' })
-        }
       }
     })
   },
@@ -169,10 +166,14 @@ Page({
             }
             reject(new Error(payload.message || '图片上传失败'))
           } catch (error) {
+            console.error('图片上传解析失败', error)
             reject(new Error('图片上传失败'))
           }
         },
-        fail: () => reject(new Error('图片上传失败'))
+        fail: (err) => {
+          console.error('图片上传网络失败', err)
+          reject(new Error('图片上传失败'))
+        }
       })
     }))
     return Promise.all(uploads)
