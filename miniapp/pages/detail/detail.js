@@ -6,7 +6,14 @@ Page({
     wx.request({
       url: `${app.globalData.baseUrl}/api/posts/${this.data.id}`,
       header: { satoken: app.globalData.token },
-      success: (res) => { if (res.data.code === 200) this.setData({ post: res.data.data }) }
+      success: (res) => {
+        if (res.data.code === 200) {
+          const post = res.data.data
+          if (post.imageUrls) post.imageUrls = post.imageUrls.map(u => app.resolveImageUrl(u))
+          if (post.coverImageUrl) post.coverImageUrl = app.resolveImageUrl(post.coverImageUrl)
+          this.setData({ post })
+        }
+      }
     })
   },
   applyClaim() {
@@ -35,5 +42,16 @@ Page({
   openChat() {
     if (!app.globalData.token) { wx.showToast({ title: '请先登录', icon: 'none' }); return }
     wx.navigateTo({ url: `/pages/chat/chat?postId=${this.data.id}` })
+  },
+  previewImage(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const urls = (this.data.post && this.data.post.imageUrls) || []
+    if (!urls.length) {
+      return
+    }
+    wx.previewImage({
+      current: urls[index] || urls[0],
+      urls
+    })
   }
 })

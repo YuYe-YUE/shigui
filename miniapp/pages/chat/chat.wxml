@@ -2,7 +2,7 @@
 <view class="container">
   <!-- 消息列表区域 -->
   <scroll-view class="msg-list" scroll-y>
-    <view class="msg-item {{message.senderUserId === myId ? 'msg-right' : 'msg-left'}}"
+    <view class="msg-item {{message.mine ? 'msg-right' : 'msg-left'}}"
           wx:for="{{messages}}" wx:key="id">
       <view class="msg-bubble">{{message.content}}</view>
     </view>

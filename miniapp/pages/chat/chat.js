@@ -1,17 +1,9 @@
 const app = getApp()
 Page({
-  data: { sessionId: '', messages: [], inputText: '', myId: 0 },
+  data: { sessionId: '', messages: [], inputText: '' },
   onLoad(options) {
     this.setData({ postId: options.postId })
-    this.loadCurrentUser()
     this.initSession()
-  },
-  loadCurrentUser() {
-    wx.request({
-      url: `${app.globalData.baseUrl}/api/user/me`,
-      header: { satoken: app.globalData.token },
-      success: (res) => { if (res.data.code === 200 && res.data.data) this.setData({ myId: res.data.data.id }) }
-    })
   },
   initSession() {
     wx.request({

@@ -3,6 +3,7 @@ package com.shigui.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CreatePostRequest {
@@ -18,4 +19,5 @@ public class CreatePostRequest {
     private Double latitude;
     private String storageLocation;
     private LocalDateTime eventTime;
+    private List<String> imageUrls;
 }

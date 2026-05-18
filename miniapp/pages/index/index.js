@@ -38,7 +38,10 @@ Page({
         header: token ? { satoken: token } : {},
         success: (res) => {
           if (res.data.code === 200) {
-            const newPosts = res.data.data.records || []
+            const newPosts = (res.data.data.records || []).map(p => {
+              if (p.coverImageUrl) p.coverImageUrl = app.resolveImageUrl(p.coverImageUrl)
+              return p
+            })
             this.setData({
               posts: page === 1 ? newPosts : [...this.data.posts, ...newPosts]
             })

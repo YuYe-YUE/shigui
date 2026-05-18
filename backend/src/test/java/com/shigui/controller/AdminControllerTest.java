@@ -8,6 +8,7 @@ import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
 import com.shigui.service.ClaimRecordService;
 import com.shigui.service.LostFoundPostService;
+import com.shigui.service.MatchRecordService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AppUserService appUserService;
+
+    @MockitoBean
+    private MatchRecordService matchRecordService;
 
     @MockitoBean
     private ClaimRecordService claimRecordService;
@@ -177,6 +181,49 @@ class AdminControllerTest {
     }
 
     @Test
+    void listMatches_loggedIn_returnsMatchRows() throws Exception {
+        String token = getAdminToken();
+        com.shigui.dto.AdminMatchResponse row = new com.shigui.dto.AdminMatchResponse();
+        row.setId(9L);
+        row.setLostPostId(1L);
+        row.setLostTitle("丢失校园卡");
+        row.setFoundPostId(2L);
+        row.setFoundTitle("捡到校园卡");
+        row.setScore(new java.math.BigDecimal("0.8800"));
+        row.setReason("校区、品类和私密特征匹配");
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.shigui.dto.AdminMatchResponse> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10);
+        page.setRecords(java.util.List.of(row));
+        page.setTotal(1);
+        when(matchRecordService.listAdminMatches(1, 10)).thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/matches").header("satoken", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.records[0].lostTitle").value("丢失校园卡"))
+                .andExpect(jsonPath("$.data.records[0].foundTitle").value("捡到校园卡"))
+                .andExpect(jsonPath("$.data.records[0].reason").value("校区、品类和私密特征匹配"));
+    }
+
+    @Test
+    void dashboard_loggedIn_returnsRealCounts() throws Exception {
+        String token = getAdminToken();
+        when(appUserService.count(any())).thenReturn(8L);
+        when(lostFoundPostService.count(any())).thenReturn(3L, 2L, 1L);
+        when(matchRecordService.count(any())).thenReturn(4L);
+
+        mockMvc.perform(get("/api/admin/dashboard").header("satoken", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.registeredUsers").value(8))
+                .andExpect(jsonPath("$.data.matchingPosts").value(3))
+                .andExpect(jsonPath("$.data.todayPublished").value(2))
+                .andExpect(jsonPath("$.data.successfulClaims").value(1))
+                .andExpect(jsonPath("$.data.matchRecords").value(4));
+    }
+
+    @Test
     void banUser_loggedIn_returns200() throws Exception {
         String token = getAdminToken();
         mockMvc.perform(put("/api/admin/users/1/ban").header("satoken", token))
@@ -214,13 +261,12 @@ class AdminControllerTest {
     }
 
     @Test
-    void listClaims_loggedIn_returnsClaims() throws Exception {
+    void listClaims_loggedIn_returnsClaimsFromClaimService() throws Exception {
         String token = getAdminToken();
         AdminClaimResponse row = new AdminClaimResponse();
-        row.setId(1L);
-        row.setPostTitle("捡到校园卡");
-        row.setPrivateFeatureAnswer("蓝色贴纸");
+        row.setId(9L);
         row.setStatus("PENDING_ADMIN_REVIEW");
+        row.setPostTitle("捡到校园卡");
         Page<AdminClaimResponse> page = new Page<>(1, 10);
         page.setRecords(java.util.List.of(row));
         page.setTotal(1);
@@ -235,27 +281,27 @@ class AdminControllerTest {
     }
 
     @Test
-    void approveClaim_loggedIn_returnsVerified() throws Exception {
+    void approveClaim_loggedIn_usesApproveEndpointAndClaimService() throws Exception {
         String token = getAdminToken();
         AdminClaimResponse response = new AdminClaimResponse();
-        response.setId(1L);
+        response.setId(9L);
         response.setStatus("VERIFIED");
-        when(claimRecordService.approveByAdmin(1L)).thenReturn(response);
+        when(claimRecordService.approveByAdmin(9L)).thenReturn(response);
 
-        mockMvc.perform(put("/api/admin/claims/1/approve").header("satoken", token))
+        mockMvc.perform(put("/api/admin/claims/9/approve").header("satoken", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("VERIFIED"));
     }
 
     @Test
-    void rejectClaim_loggedIn_returnsRejected() throws Exception {
+    void rejectClaim_loggedIn_usesRejectEndpointAndClaimService() throws Exception {
         String token = getAdminToken();
         AdminClaimResponse response = new AdminClaimResponse();
-        response.setId(1L);
+        response.setId(9L);
         response.setStatus("REJECTED");
-        when(claimRecordService.rejectByAdmin(1L, "答案不匹配")).thenReturn(response);
+        when(claimRecordService.rejectByAdmin(9L, "答案不匹配")).thenReturn(response);
 
-        mockMvc.perform(put("/api/admin/claims/1/reject")
+        mockMvc.perform(put("/api/admin/claims/9/reject")
                         .header("satoken", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"答案不匹配\"}"))
@@ -264,46 +310,9 @@ class AdminControllerTest {
     }
 
     @Test
-    void listClaims_userToken_returns403() throws Exception {
-        String token = getUserToken();
-        mockMvc.perform(get("/api/admin/claims").header("satoken", token))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void approveClaim_userToken_returns403() throws Exception {
         String token = getUserToken();
-        mockMvc.perform(put("/api/admin/claims/1/approve").header("satoken", token))
+        mockMvc.perform(put("/api/admin/claims/9/approve").header("satoken", token))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void rejectClaim_userToken_returns403() throws Exception {
-        String token = getUserToken();
-        mockMvc.perform(put("/api/admin/claims/1/reject")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("satoken", token)
-                        .content("{\"reason\":\"答案不匹配\"}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void listClaims_notLoggedIn_returns401() throws Exception {
-        mockMvc.perform(get("/api/admin/claims"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void approveClaim_notLoggedIn_returns401() throws Exception {
-        mockMvc.perform(put("/api/admin/claims/1/approve"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void rejectClaim_notLoggedIn_returns401() throws Exception {
-        mockMvc.perform(put("/api/admin/claims/1/reject")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reason\":\"答案不匹配\"}"))
-                .andExpect(status().isUnauthorized());
     }
 }

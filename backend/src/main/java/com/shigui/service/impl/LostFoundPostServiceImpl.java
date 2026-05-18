@@ -4,27 +4,46 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shigui.dto.CreatePostRequest;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.LostFoundPost;
+import com.shigui.entity.PostImage;
 import com.shigui.mapper.LostFoundPostMapper;
+import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.AppUserService;
+import com.shigui.service.FileStorageService;
 import com.shigui.service.LostFoundPostService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, LostFoundPost> implements LostFoundPostService {
+    private static final String POST_IMAGE_PREFIX = "/uploads/posts/";
 
     private final AppUserService appUserService;
+    private final PostImageMapper postImageMapper;
+    private final FileStorageService fileStorageService;
 
-    public LostFoundPostServiceImpl(AppUserService appUserService) {
+    public LostFoundPostServiceImpl(
+            AppUserService appUserService,
+            PostImageMapper postImageMapper,
+            FileStorageService fileStorageService) {
         this.appUserService = appUserService;
+        this.postImageMapper = postImageMapper;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
+    @Transactional
     public PostResponse publish(Long userId, CreatePostRequest request) {
         AppUser user = appUserService.getByIdOrThrow(userId);
         if ("BANNED".equals(user.getStatus())) {
@@ -51,7 +70,8 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         post.setDeleted(0);
 
         save(post);
-        return toResponse(post);
+        savePostImages(post.getId(), request.getImageUrls());
+        return toResponse(post, request.getImageUrls());
     }
 
     @Override
@@ -80,8 +100,9 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         wrapper.orderByDesc(LostFoundPost::getPublishedAt);
 
         Page<LostFoundPost> entityPage = page(new Page<>(page, size), wrapper);
+        Map<Long, List<String>> imageUrlsByPostId = loadImageUrlsByPostIds(entityPage.getRecords());
         List<PostResponse> responses = entityPage.getRecords().stream()
-                .map(this::toResponse).toList();
+                .map(post -> toResponse(post, imageUrlsByPostId.get(post.getId()))).toList();
 
         Page<PostResponse> result = new Page<>(page, size);
         result.setRecords(responses);
@@ -98,13 +119,37 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         wrapper.orderByDesc(LostFoundPost::getPublishedAt);
 
         Page<LostFoundPost> entityPage = page(new Page<>(page, size), wrapper);
+        Map<Long, List<String>> imageUrlsByPostId = loadImageUrlsByPostIds(entityPage.getRecords());
         List<PostResponse> responses = entityPage.getRecords().stream()
-                .map(this::toResponse).toList();
+                .map(post -> toResponse(post, imageUrlsByPostId.get(post.getId()))).toList();
 
         Page<PostResponse> result = new Page<>(page, size);
         result.setRecords(responses);
         result.setTotal(entityPage.getTotal());
         return result;
+    }
+
+    @Override
+    public List<MapPostResponse> listMapPosts() {
+        LambdaQueryWrapper<LostFoundPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(
+                LostFoundPost::getId,
+                LostFoundPost::getItemName,
+                LostFoundPost::getItemCategory,
+                LostFoundPost::getCampusArea,
+                LostFoundPost::getLocationName,
+                LostFoundPost::getLongitude,
+                LostFoundPost::getLatitude,
+                LostFoundPost::getEventTime
+        );
+        wrapper.eq(LostFoundPost::getPostType, "FOUND");
+        wrapper.eq(LostFoundPost::getStatus, "MATCHING");
+        wrapper.eq(LostFoundPost::getDeleted, 0);
+        wrapper.isNotNull(LostFoundPost::getLongitude);
+        wrapper.isNotNull(LostFoundPost::getLatitude);
+        wrapper.orderByDesc(LostFoundPost::getPublishedAt);
+
+        return list(wrapper).stream().map(this::toMapResponse).toList();
     }
 
     private void validate(CreatePostRequest request) {
@@ -133,9 +178,29 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         if (request.getEventTime() == null) {
             throw new IllegalArgumentException("发生时间不能为空");
         }
+        List<String> imageUrls = request.getImageUrls();
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+        if (imageUrls.size() > 3) {
+            throw new IllegalArgumentException("最多上传 3 张图片");
+        }
+        for (String imageUrl : imageUrls) {
+            if (isBlank(imageUrl) || !imageUrl.startsWith(POST_IMAGE_PREFIX)) {
+                throw new IllegalArgumentException("图片 URL 必须以 /uploads/posts/ 开头");
+            }
+            if (!fileStorageService.isStoredPostImage(imageUrl)) {
+                throw new IllegalArgumentException("图片不存在或不可用");
+            }
+        }
     }
 
     private PostResponse toResponse(LostFoundPost post) {
+        return toResponse(post, loadImageUrls(post.getId()));
+    }
+
+    private PostResponse toResponse(LostFoundPost post, List<String> imageUrls) {
+        List<String> safeImageUrls = imageUrls == null ? Collections.emptyList() : List.copyOf(imageUrls);
         PostResponse response = new PostResponse();
         response.setId(post.getId());
         response.setPostType(post.getPostType());
@@ -149,6 +214,76 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         response.setEventTime(post.getEventTime());
         response.setPublishedAt(post.getPublishedAt());
         response.setStatus(post.getStatus());
+        response.setImageUrls(safeImageUrls);
+        response.setCoverImageUrl(safeImageUrls.isEmpty() ? null : safeImageUrls.get(0));
+        return response;
+    }
+
+    private void savePostImages(Long postId, List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+        for (int index = 0; index < imageUrls.size(); index++) {
+            PostImage postImage = new PostImage();
+            postImage.setPostId(postId);
+            postImage.setImageUrl(imageUrls.get(index));
+            postImage.setSortOrder(index);
+            postImage.setDeleted(0);
+            postImage.setCreatedAt(LocalDateTime.now());
+            postImageMapper.insert(postImage);
+        }
+    }
+
+    private List<String> loadImageUrls(Long postId) {
+        if (postId == null) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<PostImage> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PostImage::getPostId, postId);
+        wrapper.eq(PostImage::getDeleted, 0);
+        wrapper.orderByAsc(PostImage::getSortOrder, PostImage::getId);
+        List<PostImage> postImages = postImageMapper.selectList(wrapper);
+        if (postImages == null || postImages.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return postImages.stream()
+                .map(PostImage::getImageUrl)
+                .toList();
+    }
+
+    private Map<Long, List<String>> loadImageUrlsByPostIds(List<LostFoundPost> posts) {
+        if (posts == null || posts.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<Long> postIds = posts.stream()
+                .map(LostFoundPost::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        if (postIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        LambdaQueryWrapper<PostImage> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(PostImage::getPostId, postIds);
+        wrapper.eq(PostImage::getDeleted, 0);
+        wrapper.orderByAsc(PostImage::getSortOrder, PostImage::getId);
+        return postImageMapper.selectList(wrapper).stream()
+                .collect(Collectors.groupingBy(
+                        PostImage::getPostId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(PostImage::getImageUrl, Collectors.toList())
+                ));
+    }
+
+    private MapPostResponse toMapResponse(LostFoundPost post) {
+        MapPostResponse response = new MapPostResponse();
+        response.setId(post.getId());
+        response.setItemName(post.getItemName());
+        response.setItemCategory(post.getItemCategory());
+        response.setCampusArea(post.getCampusArea());
+        response.setLocationName(post.getLocationName());
+        response.setLongitude(post.getLongitude());
+        response.setLatitude(post.getLatitude());
+        response.setEventTime(post.getEventTime());
         return response;
     }
 

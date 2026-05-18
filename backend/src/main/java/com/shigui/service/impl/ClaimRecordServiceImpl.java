@@ -27,7 +27,6 @@ import java.util.List;
 
 @Service
 public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, ClaimRecord> implements ClaimRecordService {
-
     private static final String PENDING_AI_REVIEW = "PENDING_AI_REVIEW";
     private static final String PENDING_ADMIN_REVIEW = "PENDING_ADMIN_REVIEW";
     private static final String VERIFIED = "VERIFIED";
@@ -51,24 +50,23 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
 
     @Override
     @Transactional
-    public ClaimResponse createClaim(Long claimantUserId, CreateClaimRequest request) {
+    public ClaimResponse createClaim(Long userId, CreateClaimRequest request) {
         validateCreateRequest(request);
-        AppUser user = appUserService.getByIdOrThrow(claimantUserId);
+        AppUser user = appUserService.getByIdOrThrow(userId);
         if ("BANNED".equals(user.getStatus())) {
             throw new IllegalArgumentException("封禁用户不能申请认领");
         }
 
         LostFoundPost post = lostFoundPostService.getById(request.getPostId());
-        validateClaimablePost(post, claimantUserId);
+        validateClaimablePost(post, userId);
         ensureNoActiveClaim(post.getId());
 
         ClaimRecord claim = new ClaimRecord();
         claim.setPostId(post.getId());
-        claim.setClaimantUserId(claimantUserId);
+        claim.setClaimantUserId(userId);
         claim.setPrivateFeatureAnswer(request.getPrivateFeatureAnswer().trim());
         claim.setStatus(PENDING_AI_REVIEW);
         claim.setDeleted(0);
-
         try {
             save(claim);
         } catch (DataIntegrityViolationException e) {
@@ -85,11 +83,16 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
                 .eq(ClaimRecord::getClaimantUserId, userId)
                 .eq(ClaimRecord::getDeleted, 0)
                 .orderByDesc(ClaimRecord::getCreatedAt));
-
         Page<ClaimResponse> result = new Page<>(page, size);
         result.setRecords(entityPage.getRecords().stream().map(this::toResponse).toList());
         result.setTotal(entityPage.getTotal());
         return result;
+    }
+
+    @Override
+    public ClaimResponse getByIdOrThrow(Long claimId) {
+        ClaimRecord claim = requireClaim(claimId);
+        return toResponse(claim);
     }
 
     @Override
@@ -102,12 +105,10 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         if (!VERIFIED.equals(claim.getStatus())) {
             throw new IllegalArgumentException("只有已通过的认领申请可以确认收到");
         }
-
         LostFoundPost post = requirePost(claim.getPostId());
         claim.setStatus(COMPLETED);
         claim.setCompletedAt(LocalDateTime.now());
         updateClaimStatusOrThrow(claim, VERIFIED, "只有已通过的认领申请可以确认收到");
-
         post.setStatus("COMPLETED");
         updatePostOrThrow(post);
         return toResponse(claim, post);
@@ -119,7 +120,6 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         wrapper.eq(ClaimRecord::getDeleted, 0);
         wrapper.eq(status != null && !status.isBlank(), ClaimRecord::getStatus, status);
         wrapper.orderByDesc(ClaimRecord::getCreatedAt);
-
         Page<ClaimRecord> entityPage = page(new Page<>(page, size), wrapper);
         Page<AdminClaimResponse> result = new Page<>(page, size);
         result.setRecords(entityPage.getRecords().stream().map(this::toAdminResponse).toList());
@@ -132,13 +132,11 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
     public AdminClaimResponse approveByAdmin(Long claimId) {
         ClaimRecord claim = requireClaim(claimId);
         ensureAdminReviewable(claim);
-
         LostFoundPost post = requirePost(claim.getPostId());
         String expectedStatus = claim.getStatus();
         claim.setStatus(VERIFIED);
         claim.setVerifiedAt(LocalDateTime.now());
         updateClaimStatusOrThrow(claim, expectedStatus, "当前认领申请不可审核");
-
         post.setStatus("RETURNING");
         updatePostOrThrow(post);
         return toAdminResponse(claim, post);
@@ -149,13 +147,11 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
     public AdminClaimResponse rejectByAdmin(Long claimId, String reason) {
         ClaimRecord claim = requireClaim(claimId);
         ensureAdminReviewable(claim);
-
         LostFoundPost post = requirePost(claim.getPostId());
         String expectedStatus = claim.getStatus();
         claim.setStatus(REJECTED);
         claim.setAdminReason(reason == null ? "" : reason.trim());
         updateClaimStatusOrThrow(claim, expectedStatus, "当前认领申请不可审核");
-
         post.setStatus("MATCHING");
         updatePostOrThrow(post);
         return toAdminResponse(claim, post);
@@ -178,42 +174,35 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
 
         claim.setAiDecision(result == null ? "NEEDS_REVIEW" : trimToEmpty(result.getDecision()));
         claim.setAiConfidence(normalize(result == null ? null : result.getConfidence()));
-
         if ("APPROVE".equals(claim.getAiDecision())
                 && claim.getAiConfidence().compareTo(properties.autoApproveThresholdValue()) >= 0) {
             claim.setStatus(VERIFIED);
             claim.setAiReason("私密特征匹配");
             claim.setVerifiedAt(LocalDateTime.now());
             post.setStatus("RETURNING");
-            updatePostOrThrow(post);
         } else if ("REJECT".equals(claim.getAiDecision())
                 && claim.getAiConfidence().compareTo(properties.autoRejectThresholdValue()) >= 0) {
             claim.setStatus(REJECTED);
             claim.setAiReason("私密特征不匹配");
             post.setStatus("MATCHING");
-            updatePostOrThrow(post);
         } else {
             claim.setStatus(PENDING_ADMIN_REVIEW);
             claim.setAiReason("信息不足，需人工复核");
             post.setStatus("CLAIMING");
-            updatePostOrThrow(post);
         }
+        updatePostOrThrow(post);
         updateClaimOrThrow(claim);
     }
 
     private void validateCreateRequest(CreateClaimRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("请求体不能为空");
-        }
-        if (request.getPostId() == null) {
-            throw new IllegalArgumentException("postId 不能为空");
-        }
+        if (request == null) throw new IllegalArgumentException("请求体不能为空");
+        if (request.getPostId() == null) throw new IllegalArgumentException("postId 不能为空");
         if (request.getPrivateFeatureAnswer() == null || request.getPrivateFeatureAnswer().isBlank()) {
             throw new IllegalArgumentException("私密特征答案不能为空");
         }
     }
 
-    private void validateClaimablePost(LostFoundPost post, Long claimantUserId) {
+    private void validateClaimablePost(LostFoundPost post, Long userId) {
         if (post == null || Integer.valueOf(1).equals(post.getDeleted())) {
             throw new IllegalArgumentException("单据不存在");
         }
@@ -223,7 +212,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
         if (!"MATCHING".equals(post.getStatus())) {
             throw new IllegalArgumentException("只能认领匹配中的招领单");
         }
-        if (post.getUserId().equals(claimantUserId)) {
+        if (post.getUserId().equals(userId)) {
             throw new IllegalArgumentException("不能认领自己发布的招领单");
         }
     }
@@ -345,9 +334,7 @@ public class ClaimRecordServiceImpl extends ServiceImpl<ClaimRecordMapper, Claim
     }
 
     private BigDecimal normalize(BigDecimal value) {
-        if (value == null) {
-            return BigDecimal.ZERO;
-        }
+        if (value == null) return BigDecimal.ZERO;
         return value.max(BigDecimal.ZERO).min(BigDecimal.ONE);
     }
 

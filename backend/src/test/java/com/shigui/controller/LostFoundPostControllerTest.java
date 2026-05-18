@@ -1,8 +1,10 @@
 package com.shigui.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shigui.dto.MapPostResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.service.AppUserService;
+import com.shigui.service.FileStorageService;
 import com.shigui.service.LostFoundPostService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ class LostFoundPostControllerTest {
     @MockitoBean
     private AppUserService appUserService;
 
+    @MockitoBean
+    private FileStorageService fileStorageService;
+
     @Test
     void publish_notLoggedIn_returns401() throws Exception {
         // SaToken 不再拦截 /api/posts，Controller 内部校验登录态
@@ -57,6 +62,11 @@ class LostFoundPostControllerTest {
         response.setTitle("丢失校园卡");
         response.setStatus("PENDING_AUDIT");
         response.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
+        response.setCoverImageUrl("/uploads/posts/2026/05/18/a.jpg");
+        response.setImageUrls(List.of(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg"
+        ));
         when(appUserService.loginByWechat(anyString())).thenReturn(1L);
         when(lostFoundPostService.publish(anyLong(), any(com.shigui.dto.CreatePostRequest.class))).thenReturn(response);
 
@@ -69,7 +79,9 @@ class LostFoundPostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(10))
-                .andExpect(jsonPath("$.data.status").value("PENDING_AUDIT"));
+                .andExpect(jsonPath("$.data.status").value("PENDING_AUDIT"))
+                .andExpect(jsonPath("$.data.coverImageUrl").value("/uploads/posts/2026/05/18/a.jpg"))
+                .andExpect(jsonPath("$.data.imageUrls[0]").value("/uploads/posts/2026/05/18/a.jpg"));
     }
 
     @Test
@@ -80,6 +92,8 @@ class LostFoundPostControllerTest {
         response.setTitle("丢失校园卡");
         response.setStatus("PENDING_AUDIT");
         response.setPublishedAt(LocalDateTime.of(2026, 5, 13, 10, 0));
+        response.setCoverImageUrl("/uploads/posts/2026/05/18/a.jpg");
+        response.setImageUrls(List.of("/uploads/posts/2026/05/18/a.jpg"));
         when(appUserService.loginByWechat(anyString())).thenReturn(1L);
         when(lostFoundPostService.getDetail(eq(10L), anyLong())).thenReturn(response);
 
@@ -91,6 +105,8 @@ class LostFoundPostControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(10))
                 .andExpect(jsonPath("$.data.title").value("丢失校园卡"))
+                .andExpect(jsonPath("$.data.coverImageUrl").value("/uploads/posts/2026/05/18/a.jpg"))
+                .andExpect(jsonPath("$.data.imageUrls[0]").value("/uploads/posts/2026/05/18/a.jpg"))
                 // 时间字段存在
                 .andExpect(jsonPath("$.data.publishedAt").exists());
     }
@@ -154,6 +170,39 @@ class LostFoundPostControllerTest {
                 .andExpect(jsonPath("$.code").value(200));
     }
 
+    @Test
+    void mapPoints_noAuth_returnsFoundMarkers() throws Exception {
+        MapPostResponse marker = new MapPostResponse();
+        marker.setId(88L);
+        marker.setItemName("校园卡");
+        marker.setItemCategory("证件");
+        marker.setCampusArea("南校园");
+        marker.setLocationName("逸夫楼门口");
+        marker.setLongitude(113.2931234);
+        marker.setLatitude(23.0961234);
+        marker.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
+        when(lostFoundPostService.listMapPosts()).thenReturn(List.of(marker));
+
+        mockMvc.perform(get("/api/posts/map"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].id").value(88))
+                .andExpect(jsonPath("$.data[0].itemName").value("校园卡"))
+                .andExpect(jsonPath("$.data[0].itemCategory").value("证件"))
+                .andExpect(jsonPath("$.data[0].campusArea").value("南校园"))
+                .andExpect(jsonPath("$.data[0].locationName").value("逸夫楼门口"))
+                .andExpect(jsonPath("$.data[0].longitude").value(113.2931234))
+                .andExpect(jsonPath("$.data[0].latitude").value(23.0961234))
+                .andExpect(jsonPath("$.data[0].eventTime").value("2026-05-13T09:30:00"))
+                .andExpect(jsonPath("$.data[0].privateFeature").doesNotExist())
+                .andExpect(jsonPath("$.data[0].storageLocation").doesNotExist())
+                .andExpect(jsonPath("$.data[0].userId").doesNotExist())
+                .andExpect(jsonPath("$.data[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data[0].postType").doesNotExist())
+                .andExpect(jsonPath("$.data[0].title").doesNotExist())
+                .andExpect(jsonPath("$.data[0].status").doesNotExist());
+    }
+
     private String validJson() {
         return """
                 {
@@ -168,7 +217,11 @@ class LostFoundPostControllerTest {
                   "longitude": 113.2931234,
                   "latitude": 23.0961234,
                   "storageLocation": "",
-                  "eventTime": "2026-05-13T09:30:00"
+                  "eventTime": "2026-05-13T09:30:00",
+                  "imageUrls": [
+                    "/uploads/posts/2026/05/18/a.jpg",
+                    "/uploads/posts/2026/05/18/b.jpg"
+                  ]
                 }
                 """;
     }

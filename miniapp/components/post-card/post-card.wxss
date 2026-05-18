@@ -17,10 +17,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .image-icon {
-  font-size: 64rpx;
+  width: 72rpx;
+  height: 72rpx;
   opacity: 0.3;
 }
 

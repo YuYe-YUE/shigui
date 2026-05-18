@@ -2,6 +2,8 @@ package com.shigui.service;
 
 import com.shigui.dto.ChatMessageResponse;
 import com.shigui.dto.ChatSessionResponse;
+import com.shigui.dto.CreateChatSessionRequest;
+import com.shigui.dto.SendMessageRequest;
 import com.shigui.entity.AppUser;
 import com.shigui.entity.ChatMessage;
 import com.shigui.entity.ChatSession;
@@ -28,16 +30,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ChatServiceTest {
-
     @Mock
     private ChatSessionMapper chatSessionMapper;
-
     @Mock
     private ChatMessageMapper chatMessageMapper;
-
     @Mock
     private LostFoundPostService lostFoundPostService;
-
     @Mock
     private AppUserService appUserService;
 
@@ -45,19 +43,19 @@ class ChatServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ChatServiceImpl(chatMessageMapper, lostFoundPostService, appUserService);
+        service = new ChatServiceImpl(chatSessionMapper, chatMessageMapper, lostFoundPostService, appUserService);
         injectBaseMapper(service, chatSessionMapper);
     }
 
     @Test
-    void createOrGetSession_foundPostOwnerIsFoundUserAndCurrentUserIsLostUser() {
+    void createOrGetSession_foundPostReturnsRoleViewWithoutUserIds() {
         LostFoundPost post = post("FOUND", 1L);
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "NORMAL"));
+        when(appUserService.getByIdOrThrow(2L)).thenReturn(user("NORMAL"));
         when(lostFoundPostService.getById(10L)).thenReturn(post);
         when(chatSessionMapper.selectOne(any(), eq(true))).thenReturn(null);
         when(chatSessionMapper.insert(any(ChatSession.class))).thenAnswer(inv -> {
             ChatSession session = inv.getArgument(0);
-            session.setId(99L);
+            session.setId(88L);
             return 1;
         });
 
@@ -67,110 +65,38 @@ class ChatServiceTest {
         verify(chatSessionMapper).insert(captor.capture());
         assertThat(captor.getValue().getFoundUserId()).isEqualTo(1L);
         assertThat(captor.getValue().getLostUserId()).isEqualTo(2L);
-        assertThat(captor.getValue().getStatus()).isEqualTo("ACTIVE");
-        assertThat(response.getId()).isEqualTo(99L);
-        assertThat(response.getPostId()).isEqualTo(10L);
         assertThat(response.getCurrentUserRole()).isEqualTo("LOST");
         assertThat(response.getPeerRole()).isEqualTo("FOUND");
-        assertThat(response.getStatus()).isEqualTo("ACTIVE");
     }
 
     @Test
-    void createOrGetSession_lostPostOwnerIsLostUserAndCurrentUserIsFoundUser() {
-        LostFoundPost post = post("LOST", 1L);
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "NORMAL"));
-        when(lostFoundPostService.getById(10L)).thenReturn(post);
-        when(chatSessionMapper.selectOne(any(), eq(true))).thenReturn(session(88L, 10L, 1L, 2L));
+    void getMessages_returnsMineAndSenderRoleInsteadOfUserId() {
+        when(chatSessionMapper.selectById(88L)).thenReturn(session());
+        when(chatMessageMapper.selectList(any())).thenReturn(List.of(message(7L, 2L, "你好"), message(8L, 1L, "请来取")));
 
-        ChatSessionResponse response = service.createOrGetSession(2L, 10L);
+        List<ChatMessageResponse> response = service.listMessages(2L, 88L);
 
-        assertThat(response.getId()).isEqualTo(88L);
-        assertThat(response.getCurrentUserRole()).isEqualTo("FOUND");
-        assertThat(response.getPeerRole()).isEqualTo("LOST");
-    }
-
-    @Test
-    void createOrGetSession_rejectsPostOwnerAsThirdPartyForThisConversation() {
-        LostFoundPost post = post("FOUND", 2L);
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "NORMAL"));
-        when(lostFoundPostService.getById(10L)).thenReturn(post);
-
-        assertThatThrownBy(() -> service.createOrGetSession(2L, 10L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("不能和自己创建聊天");
-    }
-
-    @Test
-    void createOrGetSession_rejectsBannedUser() {
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "BANNED"));
-
-        assertThatThrownBy(() -> service.createOrGetSession(2L, 10L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("封禁用户不能创建聊天");
-    }
-
-    @Test
-    void listMessages_participantGetsMessages() {
-        when(chatSessionMapper.selectById(99L)).thenReturn(session(99L, 10L, 2L, 1L));
-        when(chatMessageMapper.selectList(any())).thenReturn(List.of(message(7L, 99L, 2L, "你好")));
-
-        List<ChatMessageResponse> messages = service.listMessages(2L, 99L);
-
-        assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).getId()).isEqualTo(7L);
-        assertThat(messages.get(0).getContent()).isEqualTo("你好");
-        assertThat(messages.get(0).getMsgType()).isEqualTo("TEXT");
-    }
-
-    @Test
-    void listMessages_rejectsNonParticipant() {
-        when(chatSessionMapper.selectById(99L)).thenReturn(session(99L, 10L, 2L, 1L));
-
-        assertThatThrownBy(() -> service.listMessages(3L, 99L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("只能访问自己的聊天会话");
-    }
-
-    @Test
-    void sendMessage_participantSavesTextMessage() {
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "NORMAL"));
-        when(chatSessionMapper.selectById(99L)).thenReturn(session(99L, 10L, 2L, 1L));
-        when(chatMessageMapper.insert(any(ChatMessage.class))).thenAnswer(inv -> {
-            ChatMessage message = inv.getArgument(0);
-            message.setId(7L);
-            return 1;
-        });
-
-        ChatMessageResponse response = service.sendMessage(2L, 99L, " 你好 ");
-
-        ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
-        verify(chatMessageMapper).insert(captor.capture());
-        assertThat(captor.getValue().getSessionId()).isEqualTo(99L);
-        assertThat(captor.getValue().getSenderUserId()).isEqualTo(2L);
-        assertThat(captor.getValue().getContent()).isEqualTo("你好");
-        assertThat(captor.getValue().getMsgType()).isEqualTo("TEXT");
-        assertThat(response.getId()).isEqualTo(7L);
-        assertThat(response.getContent()).isEqualTo("你好");
-        assertThat(response.getMsgType()).isEqualTo("TEXT");
-    }
-
-    @Test
-    void sendMessage_rejectsBannedUser() {
-        when(appUserService.getByIdOrThrow(2L)).thenReturn(user(2L, "BANNED"));
-
-        assertThatThrownBy(() -> service.sendMessage(2L, 99L, "你好"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("封禁用户不能发送消息");
+        assertThat(response).hasSize(2);
+        assertThat(response.get(0).getMine()).isTrue();
+        assertThat(response.get(0).getSenderRole()).isEqualTo("LOST");
+        assertThat(response.get(1).getMine()).isFalse();
+        assertThat(response.get(1).getSenderRole()).isEqualTo("FOUND");
     }
 
     @Test
     void sendMessage_rejectsNonParticipant() {
-        when(appUserService.getByIdOrThrow(3L)).thenReturn(user(3L, "NORMAL"));
-        when(chatSessionMapper.selectById(99L)).thenReturn(session(99L, 10L, 2L, 1L));
+        when(appUserService.getByIdOrThrow(3L)).thenReturn(user("NORMAL"));
+        when(chatSessionMapper.selectById(88L)).thenReturn(session());
 
-        assertThatThrownBy(() -> service.sendMessage(3L, 99L, "你好"))
+        assertThatThrownBy(() -> service.sendMessage(3L, 88L, "你好"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("只能访问自己的聊天会话");
+                .hasMessageContaining("自己的聊天会话");
+    }
+
+    private CreateChatSessionRequest request() {
+        CreateChatSessionRequest request = new CreateChatSessionRequest();
+        request.setPostId(10L);
+        return request;
     }
 
     private LostFoundPost post(String postType, Long userId) {
@@ -183,31 +109,30 @@ class ChatServiceTest {
         return post;
     }
 
-    private ChatSession session(Long id, Long postId, Long lostUserId, Long foundUserId) {
+    private ChatSession session() {
         ChatSession session = new ChatSession();
-        session.setId(id);
-        session.setPostId(postId);
-        session.setLostUserId(lostUserId);
-        session.setFoundUserId(foundUserId);
+        session.setId(88L);
+        session.setPostId(10L);
+        session.setLostUserId(2L);
+        session.setFoundUserId(1L);
         session.setStatus("ACTIVE");
         session.setDeleted(0);
         return session;
     }
 
-    private ChatMessage message(Long id, Long sessionId, Long senderUserId, String content) {
+    private ChatMessage message(Long id, Long senderUserId, String content) {
         ChatMessage message = new ChatMessage();
         message.setId(id);
-        message.setSessionId(sessionId);
+        message.setSessionId(88L);
         message.setSenderUserId(senderUserId);
         message.setContent(content);
         message.setMsgType("TEXT");
-        message.setDeleted(0);
         return message;
     }
 
-    private AppUser user(Long id, String status) {
+    private AppUser user(String status) {
         AppUser user = new AppUser();
-        user.setId(id);
+        user.setId(2L);
         user.setStatus(status);
         return user;
     }

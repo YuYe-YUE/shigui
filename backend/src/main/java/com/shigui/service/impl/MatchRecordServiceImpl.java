@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shigui.dto.AiMatchResult;
+import com.shigui.dto.AdminMatchResponse;
 import com.shigui.dto.MatchResponse;
 import com.shigui.dto.PostResponse;
 import com.shigui.entity.LostFoundPost;
@@ -95,6 +96,21 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
                 .map(r -> toResponse(r, userId))
                 .toList();
         Page<MatchResponse> result = new Page<>(page, size);
+        result.setRecords(responses);
+        result.setTotal(entityPage.getTotal());
+        return result;
+    }
+
+    @Override
+    public Page<AdminMatchResponse> listAdminMatches(int page, int size) {
+        LambdaQueryWrapper<MatchRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MatchRecord::getDeleted, 0);
+        wrapper.orderByDesc(MatchRecord::getCreatedAt);
+        Page<MatchRecord> entityPage = page(new Page<>(page, size), wrapper);
+        List<AdminMatchResponse> responses = entityPage.getRecords().stream()
+                .map(this::toAdminResponse)
+                .toList();
+        Page<AdminMatchResponse> result = new Page<>(page, size);
         result.setRecords(responses);
         result.setTotal(entityPage.getTotal());
         return result;
@@ -193,6 +209,29 @@ public class MatchRecordServiceImpl extends ServiceImpl<MatchRecordMapper, Match
         r.setLocationName(post.getLocationName()); r.setStorageLocation(post.getStorageLocation());
         r.setEventTime(post.getEventTime()); r.setPublishedAt(post.getPublishedAt()); r.setStatus(post.getStatus());
         return r;
+    }
+
+    private AdminMatchResponse toAdminResponse(MatchRecord record) {
+        LostFoundPost lost = lostFoundPostService.getById(record.getLostPostId());
+        LostFoundPost found = lostFoundPostService.getById(record.getFoundPostId());
+        AdminMatchResponse response = new AdminMatchResponse();
+        response.setId(record.getId());
+        response.setLostPostId(record.getLostPostId());
+        response.setFoundPostId(record.getFoundPostId());
+        if (lost != null) {
+            response.setLostTitle(lost.getTitle());
+            response.setLostItemName(lost.getItemName());
+            response.setLostCampusArea(lost.getCampusArea());
+        }
+        if (found != null) {
+            response.setFoundTitle(found.getTitle());
+            response.setFoundItemName(found.getItemName());
+            response.setFoundCampusArea(found.getCampusArea());
+        }
+        response.setScore(record.getScore());
+        response.setReason(record.getReason());
+        response.setCreatedAt(record.getCreatedAt());
+        return response;
     }
 
     private String ruleReason(LostFoundPost target, LostFoundPost candidate) {

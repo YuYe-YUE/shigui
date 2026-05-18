@@ -51,6 +51,18 @@ CREATE TABLE lost_found_post (
     INDEX idx_location (longitude, latitude)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 单据图片
+CREATE TABLE post_image (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id BIGINT NOT NULL,
+    image_url VARCHAR(512) NOT NULL,
+    sort_order INT DEFAULT 0,
+    deleted TINYINT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_post_id (post_id),
+    INDEX idx_post_sort (post_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 内容审核操作日志
 CREATE TABLE audit_record (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

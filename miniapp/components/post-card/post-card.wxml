@@ -1,7 +1,7 @@
 <view class="post-card">
-  <!-- 占位图区域：未来可替换为 real image -->
   <view class="image-placeholder">
-    <image class="image-icon" src="/assets/icons/image.svg" />
+    <image wx:if="{{item.coverImageUrl}}" class="cover-image" src="{{item.coverImageUrl}}" mode="aspectFill" />
+    <image wx:else class="image-icon" src="/assets/icons/image.svg" />
   </view>
   
   <view class="content">

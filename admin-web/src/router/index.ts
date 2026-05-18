@@ -17,6 +17,7 @@ const router = createRouter({
         { path: 'dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue') },
         { path: 'posts', name: 'posts', component: () => import('../views/PostAuditView.vue') },
         { path: 'matches', name: 'matches', component: () => import('../views/MatchResultView.vue') },
+        { path: 'claims', name: 'claims', component: () => import('../views/ClaimReviewView.vue') },
         { path: 'users', name: 'users', component: () => import('../views/UserManageView.vue') },
       ],
     },

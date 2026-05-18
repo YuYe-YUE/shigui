@@ -35,8 +35,11 @@ async function viewDetail(id: number) {
   try {
     const res = await api.get(`/api/admin/posts/${id}`)
     const post = res.data.data
+    const images = (post.imageUrls && post.imageUrls.length)
+      ? '\n\n图片：' + post.imageUrls.join('\n')
+      : ''
     ElMessageBox.alert(
-      `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}`,
+      `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}${images}`,
       post.title,
       { confirmButtonText: '关闭' }
     )

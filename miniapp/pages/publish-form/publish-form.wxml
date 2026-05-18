@@ -19,7 +19,7 @@
   </view>
 
   <view class="form-group">
-    <view class="form-label">校园区域</view>
+    <view class="form-label">校园区域 <text class="required">*</text></view>
     <input class="form-input" placeholder="如：南校区" data-field="campusArea" bindinput="setField" value="{{form.campusArea}}" />
   </view>
 
@@ -28,9 +28,45 @@
     <input class="form-input" placeholder="如：第二食堂二楼" data-field="locationName" bindinput="setField" value="{{form.locationName}}" />
   </view>
 
+  <view class="form-group" wx:if="{{postType === 'FOUND'}}">
+    <view class="form-label">捡到位置</view>
+    <view class="location-panel">
+      <view class="location-summary" wx:if="{{form.longitude && form.latitude}}">
+        <view class="location-name">{{form.locationName || '已标注地图位置'}}</view>
+        <view class="location-coords">{{form.latitude}}，{{form.longitude}}</view>
+      </view>
+      <view class="location-summary muted" wx:else>
+        标注后，这条招领单会显示在地图中
+      </view>
+      <view class="location-actions">
+        <button class="location-btn" size="mini" bindtap="chooseFoundLocation">在地图上标注</button>
+        <button
+          wx:if="{{form.longitude && form.latitude}}"
+          class="location-clear"
+          size="mini"
+          bindtap="clearFoundLocation"
+        >
+          清除
+        </button>
+      </view>
+    </view>
+  </view>
+
   <view class="form-group">
     <view class="form-label">物品描述</view>
     <textarea class="form-textarea" placeholder="补充物品的外观、颜色、品牌等特征" data-field="description" bindinput="setField" value="{{form.description}}" />
+  </view>
+
+  <view class="form-group">
+    <view class="form-label">物品图片</view>
+    <view class="image-grid">
+      <view class="image-item" wx:for="{{form.imageFiles}}" wx:key="tempFilePath">
+        <image class="image-thumb" src="{{item.tempFilePath}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" />
+        <button class="image-remove" size="mini" data-index="{{index}}" bindtap="removeImage">删除</button>
+      </view>
+      <button wx:if="{{form.imageFiles.length < 3}}" class="image-add" bindtap="chooseImages" disabled="{{uploadingImages || submitting}}">添加图片</button>
+    </view>
+    <view class="image-hint">{{uploadingImages ? '图片上传中...' : '最多 3 张，提交时自动上传'}}</view>
   </view>
 
   <view class="form-group">
@@ -43,5 +79,5 @@
     <input class="form-input" placeholder="物品现在存放在哪里" data-field="storageLocation" bindinput="setField" value="{{form.storageLocation}}" />
   </view>
 
-  <button class="submit-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交发布</button>
+  <button class="submit-btn" loading="{{submitting || uploadingImages}}" disabled="{{submitting || uploadingImages}}" bindtap="submit">提交发布</button>
 </view>

@@ -8,6 +8,18 @@
 
   <!-- 核心信息卡片 -->
   <view class="info-card main-card">
+    <scroll-view wx:if="{{post.imageUrls && post.imageUrls.length}}" class="image-strip" scroll-x="true" enable-flex="true">
+      <image
+        wx:for="{{post.imageUrls}}"
+        wx:key="*this"
+        class="detail-image"
+        src="{{item}}"
+        mode="aspectFill"
+        data-index="{{index}}"
+        bindtap="previewImage"
+      />
+    </scroll-view>
+
     <view class="d-title">{{post.title}}</view>
     <view class="tag-row">
       <text class="d-tag {{post.postType === 'LOST' ? 'type-lost' : 'type-found'}}">{{post.postType === 'LOST' ? '寻物' : '招领'}}</text>
@@ -35,11 +47,6 @@
   <view class="info-card">
     <view class="card-title">详细描述</view>
     <view class="d-desc">{{post.description || '发布者未留下详细描述...'}}</view>
-  </view>
-
-  <view class="info-card" wx:if="{{post.storageLocation}}">
-    <view class="card-title">暂存处</view>
-    <view class="d-desc">{{post.storageLocation}}</view>
   </view>
 
   <!-- 底部悬浮操作栏 (FAB) -->

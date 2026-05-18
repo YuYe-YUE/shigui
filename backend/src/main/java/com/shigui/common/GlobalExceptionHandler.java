@@ -58,6 +58,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 文件保存等系统状态异常，返回具体错误信息而非通用 500。
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result<Void> handleIllegalState(IllegalStateException e) {
+        return Result.fail(500, e.getMessage());
+    }
+
+    /**
      * 兜底异常处理，避免把 Java 堆栈信息直接暴露给前端。
      */
     @ExceptionHandler(Exception.class)
