@@ -41,6 +41,11 @@
             <artifactId>sa-token-spring-boot3-starter</artifactId>
             <version>1.45.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.9.4</version>
+        </dependency>
 
         <dependency>
             <groupId>com.mysql</groupId>
