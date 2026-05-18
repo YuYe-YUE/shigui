@@ -22,14 +22,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,12 +48,19 @@ class LostFoundPostServiceTest {
     @Mock
     private AppUserService appUserService;
 
+    @Mock
+    private PostImageMapper postImageMapper;
+
+    @Mock
+    private FileStorageService fileStorageService;
+
     private LostFoundPostService lostFoundPostService;
 
     @BeforeEach
     void setUp() {
         ensureTableInfoInitialized();
-        LostFoundPostServiceImpl impl = new LostFoundPostServiceImpl(appUserService);
+        lenient().when(fileStorageService.isStoredPostImage(anyString())).thenReturn(true);
+        LostFoundPostServiceImpl impl = new LostFoundPostServiceImpl(appUserService, postImageMapper, fileStorageService);
         lostFoundPostService = impl;
         injectBaseMapper(impl);
     }
@@ -91,6 +104,84 @@ class LostFoundPostServiceTest {
         PostResponse response = lostFoundPostService.publish(2L, request);
 
         assertThat(response.getId()).isEqualTo(11L);
+    }
+
+    @Test
+    void publish_withThreeImageUrls_savesPostImages() {
+        AppUser user = normalUser(1L);
+        CreatePostRequest request = validLostRequest();
+        List<String> imageUrls = List.of(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg",
+                "/uploads/posts/2026/05/18/c.jpg"
+        );
+        request.setImageUrls(imageUrls);
+        when(appUserService.getByIdOrThrow(1L)).thenReturn(user);
+        when(lostFoundPostMapper.insert(any(LostFoundPost.class))).thenAnswer(inv -> {
+            LostFoundPost post = inv.getArgument(0);
+            post.setId(10L);
+            return 1;
+        });
+
+        PostResponse response = lostFoundPostService.publish(1L, request);
+
+        ArgumentCaptor<PostImage> captor = ArgumentCaptor.forClass(PostImage.class);
+        verify(postImageMapper, org.mockito.Mockito.times(3)).insert(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(PostImage::getPostId, PostImage::getImageUrl, PostImage::getSortOrder, PostImage::getDeleted)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(10L, imageUrls.get(0), 0, 0),
+                        org.assertj.core.groups.Tuple.tuple(10L, imageUrls.get(1), 1, 0),
+                        org.assertj.core.groups.Tuple.tuple(10L, imageUrls.get(2), 2, 0)
+                );
+        assertThat(response.getCoverImageUrl()).isEqualTo(imageUrls.get(0));
+        assertThat(response.getImageUrls()).containsExactlyElementsOf(imageUrls);
+    }
+
+    @Test
+    void publish_moreThanThreeImages_throwsException() {
+        CreatePostRequest request = validLostRequest();
+        request.setImageUrls(List.of(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg",
+                "/uploads/posts/2026/05/18/c.jpg",
+                "/uploads/posts/2026/05/18/d.jpg"
+        ));
+        when(appUserService.getByIdOrThrow(1L)).thenReturn(normalUser(1L));
+
+        assertThatThrownBy(() -> lostFoundPostService.publish(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("最多上传 3 张图片");
+    }
+
+    @Test
+    void publish_imageUrlOutsidePostUploads_throwsException() {
+        CreatePostRequest request = validLostRequest();
+        request.setImageUrls(List.of("/uploads/avatars/2026/05/18/a.jpg"));
+        when(appUserService.getByIdOrThrow(1L)).thenReturn(normalUser(1L));
+
+        assertThatThrownBy(() -> lostFoundPostService.publish(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("/uploads/posts/");
+    }
+
+    @Test
+    void publish_missingUploadedImage_throwsException() {
+        CreatePostRequest request = validLostRequest();
+        request.setImageUrls(List.of("/uploads/posts/2026/05/18/missing.jpg"));
+        when(appUserService.getByIdOrThrow(1L)).thenReturn(normalUser(1L));
+        when(fileStorageService.isStoredPostImage("/uploads/posts/2026/05/18/missing.jpg")).thenReturn(false);
+
+        assertThatThrownBy(() -> lostFoundPostService.publish(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("图片不存在");
+    }
+
+    @Test
+    void publish_methodIsTransactional() throws NoSuchMethodException {
+        Method publishMethod = LostFoundPostServiceImpl.class.getMethod("publish", Long.class, CreatePostRequest.class);
+
+        assertThat(publishMethod.getAnnotation(Transactional.class)).isNotNull();
     }
 
     @Test
@@ -141,12 +232,21 @@ class LostFoundPostServiceTest {
         post.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
         post.setStatus("PENDING_AUDIT");
         when(lostFoundPostMapper.selectById(20L)).thenReturn(post);
+        when(postImageMapper.selectList(any())).thenReturn(List.of(
+                postImage(20L, "/uploads/posts/2026/05/18/a.jpg", 0),
+                postImage(20L, "/uploads/posts/2026/05/18/b.jpg", 1)
+        ));
 
         PostResponse response = lostFoundPostService.getDetail(20L, 20L);
 
         assertThat(response.getId()).isEqualTo(20L);
         assertThat(response.getDescription()).isEqualTo("绿色卡套");
         assertThat(response.getStatus()).isEqualTo("PENDING_AUDIT");
+        assertThat(response.getCoverImageUrl()).isEqualTo("/uploads/posts/2026/05/18/a.jpg");
+        assertThat(response.getImageUrls()).containsExactly(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg"
+        );
     }
 
     @Test
@@ -174,6 +274,10 @@ class LostFoundPostServiceTest {
 
     @Test
     void listPublic_onlyReturnsMatchingNotDeleted() {
+        when(postImageMapper.selectList(any())).thenReturn(List.of(
+                postImage(1L, "/uploads/posts/2026/05/18/a.jpg", 0),
+                postImage(1L, "/uploads/posts/2026/05/18/b.jpg", 1)
+        ));
         when(lostFoundPostMapper.selectPage(any(Page.class), any()))
                 .thenAnswer(inv -> {
                     Page<LostFoundPost> page = inv.getArgument(0);
@@ -189,6 +293,43 @@ class LostFoundPostServiceTest {
         Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
         assertThat(result.getRecords()).hasSize(1);
         assertThat(result.getRecords().get(0).getStatus()).isEqualTo("MATCHING");
+        assertThat(result.getRecords().get(0).getCoverImageUrl()).isEqualTo("/uploads/posts/2026/05/18/a.jpg");
+        assertThat(result.getRecords().get(0).getImageUrls()).containsExactly(
+                "/uploads/posts/2026/05/18/a.jpg",
+                "/uploads/posts/2026/05/18/b.jpg"
+        );
+    }
+
+    @Test
+    void listPublic_multiplePostsLoadsImagesInSingleQuery() {
+        when(postImageMapper.selectList(any())).thenReturn(List.of(
+                postImage(1L, "/uploads/posts/2026/05/18/a.jpg", 0),
+                postImage(2L, "/uploads/posts/2026/05/18/b.jpg", 0)
+        ));
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost first = new LostFoundPost();
+                    first.setId(1L);
+                    first.setStatus("MATCHING");
+                    first.setTitle("first");
+                    LostFoundPost second = new LostFoundPost();
+                    second.setId(2L);
+                    second.setStatus("MATCHING");
+                    second.setTitle("second");
+                    page.setRecords(List.of(first, second));
+                    page.setTotal(2);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listPublic(1, 10, null, null, null, null);
+
+        verify(postImageMapper, times(1)).selectList(any());
+        assertThat(result.getRecords()).extracting(PostResponse::getCoverImageUrl)
+                .containsExactly(
+                        "/uploads/posts/2026/05/18/a.jpg",
+                        "/uploads/posts/2026/05/18/b.jpg"
+                );
     }
 
     @Test
@@ -207,6 +348,9 @@ class LostFoundPostServiceTest {
 
     @Test
     void listMine_onlyReturnsCurrentUser() {
+        when(postImageMapper.selectList(any())).thenReturn(List.of(
+                postImage(1L, "/uploads/posts/2026/05/18/mine.jpg", 0)
+        ));
         when(lostFoundPostMapper.selectPage(any(Page.class), any()))
                 .thenAnswer(inv -> {
                     Page<LostFoundPost> page = inv.getArgument(0);
@@ -223,6 +367,40 @@ class LostFoundPostServiceTest {
         Page<PostResponse> result = lostFoundPostService.listMine(1L, 1, 10, null);
         assertThat(result.getRecords()).hasSize(1);
         assertThat(result.getRecords().get(0).getStatus()).isEqualTo("PENDING_AUDIT");
+        assertThat(result.getRecords().get(0).getCoverImageUrl()).isEqualTo("/uploads/posts/2026/05/18/mine.jpg");
+        assertThat(result.getRecords().get(0).getImageUrls()).containsExactly("/uploads/posts/2026/05/18/mine.jpg");
+    }
+
+    @Test
+    void listMine_multiplePostsLoadsImagesInSingleQuery() {
+        when(postImageMapper.selectList(any())).thenReturn(List.of(
+                postImage(1L, "/uploads/posts/2026/05/18/mine-a.jpg", 0),
+                postImage(2L, "/uploads/posts/2026/05/18/mine-b.jpg", 0)
+        ));
+        when(lostFoundPostMapper.selectPage(any(Page.class), any()))
+                .thenAnswer(inv -> {
+                    Page<LostFoundPost> page = inv.getArgument(0);
+                    LostFoundPost first = new LostFoundPost();
+                    first.setId(1L);
+                    first.setUserId(1L);
+                    first.setStatus("PENDING_AUDIT");
+                    LostFoundPost second = new LostFoundPost();
+                    second.setId(2L);
+                    second.setUserId(1L);
+                    second.setStatus("MATCHING");
+                    page.setRecords(List.of(first, second));
+                    page.setTotal(2);
+                    return page;
+                });
+
+        Page<PostResponse> result = lostFoundPostService.listMine(1L, 1, 10, null);
+
+        verify(postImageMapper, times(1)).selectList(any());
+        assertThat(result.getRecords()).extracting(PostResponse::getCoverImageUrl)
+                .containsExactly(
+                        "/uploads/posts/2026/05/18/mine-a.jpg",
+                        "/uploads/posts/2026/05/18/mine-b.jpg"
+                );
     }
 
     @Test
@@ -449,7 +627,17 @@ class LostFoundPostServiceTest {
         request.setLatitude(23.0961234);
         request.setStorageLocation("");
         request.setEventTime(LocalDateTime.of(2026, 5, 13, 9, 30));
+        request.setImageUrls(new ArrayList<>());
         return request;
+    }
+
+    private PostImage postImage(Long postId, String imageUrl, int sortOrder) {
+        PostImage postImage = new PostImage();
+        postImage.setPostId(postId);
+        postImage.setImageUrl(imageUrl);
+        postImage.setSortOrder(sortOrder);
+        postImage.setDeleted(0);
+        return postImage;
     }
 
     private LostFoundPost mapFoundPost(Long id, String status, Double longitude, Double latitude) {

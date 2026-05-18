@@ -9,4 +9,6 @@ public interface FileStorageService {
     String DEFAULT_PUBLIC_PREFIX = "/uploads";
 
     FileUploadResponse storePostImage(MultipartFile file);
+
+    boolean isStoredPostImage(String url);
 }

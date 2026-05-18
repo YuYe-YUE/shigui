@@ -80,6 +80,25 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         return response;
     }
 
+    @Override
+    public boolean isStoredPostImage(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String prefix = publicPrefix + "/";
+        if (!url.startsWith(prefix)) {
+            return false;
+        }
+        String relativePart = url.substring(prefix.length());
+        Path relativePath = Path.of(relativePart).normalize();
+        if (relativePath.isAbsolute() || relativePath.getNameCount() == 0 || !"posts".equals(relativePath.getName(0).toString())) {
+            return false;
+        }
+        Path normalizedRoot = uploadRoot.toAbsolutePath().normalize();
+        Path targetPath = normalizedRoot.resolve(relativePath).normalize();
+        return targetPath.startsWith(normalizedRoot) && Files.isRegularFile(targetPath);
+    }
+
     private void validateImageContent(MultipartFile file) {
         try (InputStream inputStream = file.getInputStream()) {
             BufferedImage image = ImageIO.read(inputStream);

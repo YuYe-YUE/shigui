@@ -43,6 +43,7 @@ class LocalFileStorageServiceTest {
         FileUploadResponse response = service.storePostImage(file);
 
         assertTrue(response.getUrl().matches("^/uploads/posts/2026/05/18/[0-9a-f\\-]+\\.png$"));
+        assertTrue(service.isStoredPostImage(response.getUrl()));
         Path storedFile = tempDir.resolve(response.getUrl().replaceFirst("^/uploads/", ""));
         assertTrue(Files.exists(storedFile));
         assertTrue(Files.size(storedFile) > 0);
@@ -106,6 +107,28 @@ class LocalFileStorageServiceTest {
         Path storedFile = tempDir.resolve(response.getUrl().replaceFirst("^/uploads/", ""));
         assertTrue(Files.exists(storedFile));
         assertTrue(Files.size(storedFile) > 0);
+    }
+
+    @Test
+    void isStoredPostImage_nonexistentFile_returnsFalse() {
+        LocalFileStorageServiceImpl service = new LocalFileStorageServiceImpl(
+                tempDir,
+                "/uploads",
+                Clock.fixed(Instant.parse("2026-05-18T08:00:00Z"), ZoneId.of("Asia/Shanghai"))
+        );
+
+        assertTrue(!service.isStoredPostImage("/uploads/posts/2026/05/18/missing.png"));
+    }
+
+    @Test
+    void isStoredPostImage_pathTraversal_returnsFalse() {
+        LocalFileStorageServiceImpl service = new LocalFileStorageServiceImpl(
+                tempDir,
+                "/uploads",
+                Clock.fixed(Instant.parse("2026-05-18T08:00:00Z"), ZoneId.of("Asia/Shanghai"))
+        );
+
+        assertTrue(!service.isStoredPostImage("/uploads/posts/../../secret.txt"));
     }
 
     private byte[] createPngBytes() throws IOException {
