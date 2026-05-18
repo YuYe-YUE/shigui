@@ -34,6 +34,7 @@ Page({
 
   // 微信登录：获取 code 后调用后端接口完成登录
   wxLogin() {
+    wx.showLoading({ title: '登录中' })
     wx.login({
       success: (res) => {
         const openid = 'dev_' + res.code
@@ -42,15 +43,28 @@ Page({
           method: 'POST',
           data: { openid },
           success: (resp) => {
+            wx.hideLoading()
             if (resp.data.code === 200) {
               const token = resp.data.data
               app.globalData.token = token
               wx.setStorageSync('token', token)
               this.loadUserInfo()
               wx.showToast({ title: '登录成功', icon: 'success' })
+            } else {
+              wx.showToast({ title: resp.data.message || '登录失败', icon: 'none' })
             }
+          },
+          fail: (err) => {
+            wx.hideLoading()
+            wx.showToast({ title: '网络请求失败，请检查服务器连接', icon: 'none' })
+            console.error('登录请求失败:', err)
           }
         })
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        wx.showToast({ title: '微信登录失败', icon: 'none' })
+        console.error('wx.login 失败:', err)
       }
     })
   },
