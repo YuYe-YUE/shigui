@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/** 通知消息响应 */
 @Data
 public class NotificationResponse {
     private Long id;

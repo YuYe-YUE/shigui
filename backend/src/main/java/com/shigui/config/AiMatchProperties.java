@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/** AI 智能匹配配置，读取 ai.match.* 前缀的 application 属性 */
 @Data
 @Component
 public class AiMatchProperties {

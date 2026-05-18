@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
+/** 全局异常处理器，将各类异常统一转换为 Result<T> 格式返回 */
 public class GlobalExceptionHandler {
 
     /**

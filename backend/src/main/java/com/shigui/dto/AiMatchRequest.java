@@ -5,6 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** AI 匹配接口请求体——目标单据 + 候选单据列表 */
 @Data
 public class AiMatchRequest {
     private Candidate target;

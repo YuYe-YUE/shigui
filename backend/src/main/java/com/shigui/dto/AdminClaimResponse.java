@@ -5,6 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/** 管理端认领审核详情响应——包含单据、用户及 AI 预审全部信息 */
 @Data
 public class AdminClaimResponse {
     private Long id;

@@ -5,6 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** 公开单据响应——含封面和图片列表，不含私密特征 */
 @Data
 public class PostResponse {
     private Long id;

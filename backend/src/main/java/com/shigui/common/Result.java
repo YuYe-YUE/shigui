@@ -2,6 +2,7 @@ package com.shigui.common;
 
 import lombok.Data;
 
+/** 全局统一响应体，所有 Controller 接口均通过此类型返回 */
 @Data
 public class Result<T> {
     /**

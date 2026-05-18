@@ -8,6 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.nio.file.Path;
 
+/** 将上传目录映射为静态资源路径，使前端可直接访问上传的图片 */
 @Configuration
 public class WebMvcResourceConfig implements WebMvcConfigurer {
 

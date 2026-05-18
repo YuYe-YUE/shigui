@@ -2,6 +2,7 @@ package com.shigui.dto;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+/** 用户端认领记录响应——含单据摘要与认领状态 */
 @Data
 public class ClaimResponse {
     private Long id; private Long postId; private String postTitle;

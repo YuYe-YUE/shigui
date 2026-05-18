@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/** 地图点位响应——仅含展示必需字段，不含私密信息 */
 @Data
 public class MapPostResponse {
     private Long id;

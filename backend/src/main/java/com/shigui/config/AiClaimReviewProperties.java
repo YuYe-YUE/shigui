@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/** AI 认领预审配置，读取 ai.claim.* 前缀的 application 属性 */
 @Data
 @Component
 public class AiClaimReviewProperties {
