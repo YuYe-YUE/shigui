@@ -54,43 +54,124 @@
 
 三层分层：Controller（REST）→ Service（业务）→ Mapper（数据访问）。统一 `Result<T>` 响应体。`deleted` 逻辑删除，`status` 业务状态流转。
 
-## 快速开始
+## 本地部署指南
 
-### 前提
+以下步骤在所有小组成员电脑上均可执行，无需服务器。
 
-- Java 21, Maven, Node.js, MySQL 8.0
-- 微信开发者工具
-- DeepSeek API Key（AI 匹配功能需要）
+### 1. 环境准备
 
-### 数据库
+| 依赖 | 版本要求 | 说明 |
+|------|---------|------|
+| JDK | 21+ | `java -version` 确认 |
+| Maven | 3.8+ | 项目自带 `mvnw`，无需全局安装 |
+| Node.js | 18+ | `node -v` 确认 |
+| MySQL | 8.0 | `mysql -V` 确认 |
+| 微信开发者工具 | 最新稳定版 | 下载 macOS/Windows 版 |
+
+AI 匹配功能需要 DeepSeek API Key（可选，不影响基本使用）。获取地址：https://platform.deepseek.com
+
+### 2. 克隆项目
 
 ```bash
+git clone https://github.com/YuYe-YUE/shigui.git
+cd shigui
+```
+
+### 3. 初始化数据库
+
+```bash
+# 按提示输入 MySQL root 密码
 mysql -u root -p < scripts/init_schema.sql
 mysql -u root -p < scripts/seed_data.sql
 ```
 
-### 后端
+种子数据包含：
+- 管理员账号（admin / admin123）
+- 4 个测试用户（端到端测试用）
+- 40 条示例单据（含坐标，可直接测试地图功能）
 
-```bash
-cd backend
-# 配置 application-local.properties（数据库密码 + AI API Key）
-# IDEA 打开 backend/，运行 BackendApplication.java
-./mvnw test   # 112 测试
+### 4. 启动后端
+
+创建 `backend/src/main/resources/application-local.properties`（已加入 `.gitignore`，不会提交）：
+
+```properties
+# MySQL 数据库密码（必填）
+spring.datasource.password=你的MySQL密码
+
+# DeepSeek AI 配置（可选，不影响基本使用）
+AI_MATCH_BASE_URL=https://api.deepseek.com
+AI_MATCH_API_KEY=sk-你的API-Key
+AI_MATCH_MODEL=deepseek-v4-flash
 ```
 
-### 管理端
+启动方式二选一：
+
+**A. IDE 启动（推荐）**
+用 IntelliJ IDEA 打开 `backend/` 目录，运行 `BackendApplication.java`。
+
+**B. 命令行启动**
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+后端启动后访问 http://localhost:8080，看到 `{"code":200}` 即成功。
+
+### 5. 启动管理端 Web
 
 ```bash
 cd admin-web
 npm install
-npm run dev    # http://localhost:5173
+npm run dev
 ```
 
-管理员账号：`admin` / `admin123`
+浏览器打开 http://localhost:5173，用 `admin` / `admin123` 登录。
 
-### 小程序
+Vite 已配置代理：`/api` 和 `/uploads` 自动转发到 `http://127.0.0.1:8080`，无需额外配置。
 
-微信开发者工具打开 `miniapp/` 目录，关闭域名校验。
+### 6. 启动小程序
+
+1. 打开**微信开发者工具**
+2. 导入项目 → 选择 `miniapp/` 目录
+3. AppID 选择「测试号」或使用现有 AppID `wx58ca83eb30d907e7`
+4. 右上角「详情」→「本地设置」→ 勾选 **「不校验合法域名」**
+
+小程序 `app.js` 的 `baseUrl` 已配置为 `http://127.0.0.1:8080`。
+
+### 7. 运行测试
+
+```bash
+cd backend
+./mvnw test                              # 全量 112 测试
+./mvnw test -Dtest='!OpenAi*'            # 跳过 AI API 测试（2 个）
+```
+
+预期结果：`Tests run: 112, Failures: 0, Errors: 0, Skipped: 2`
+
+### 默认账号
+
+| 角色 | 用户名 | 密码 | 说明 |
+|------|--------|------|------|
+| 管理员 | admin | admin123 | 管理端登录 |
+| 测试用户 | — | — | 小程序微信登录即可创建 |
+
+### 常见问题
+
+**Q: 小程序点击登录提示「网络请求失败」**
+- 确认后端已启动且端口 8080 未被占用
+- 微信开发者工具 → 详情 → 不校验合法域名（必须勾选）
+
+**Q: 管理端登录提示「用户名或密码错误」**
+- 确认已执行 `scripts/seed_data.sql`
+- 密码前端先做 SHA-256 再发送，后端双层哈希存储
+
+**Q: Maven 编译报错**
+- 使用项目自带的 `./mvnw`（不需要全局 Maven）
+- IDEA 用户直接 `Run BackendApplication.java`
+
+**Q: 图片上传/显示不出来**
+- 确认 `uploads/` 目录存在且有写入权限（后端启动时会自动创建）
+- 管理端图片通过 Vite 代理 `/uploads` → 后端 8080
 
 ## 项目结构
 
