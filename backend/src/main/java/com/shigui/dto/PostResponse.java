@@ -23,4 +23,6 @@ public class PostResponse {
     private String coverImageUrl;
     private List<String> imageUrls;
     private Boolean canChat;
+    private String privateFeature;
+    private String userId;    // admin needs publisher info
 }

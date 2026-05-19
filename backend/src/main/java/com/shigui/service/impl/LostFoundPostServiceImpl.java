@@ -153,6 +153,17 @@ public class LostFoundPostServiceImpl extends ServiceImpl<LostFoundPostMapper, L
         return result;
     }
 
+    /** 管理员无条件获取单据详情，含私密特征和图片 */
+    @Override
+    public PostResponse getDetailForAdmin(Long postId) {
+        LostFoundPost post = getById(postId);
+        if (post == null) throw new IllegalArgumentException("单据不存在: " + postId);
+        PostResponse response = toResponse(post);
+        response.setPrivateFeature(post.getPrivateFeature());
+        response.setUserId(post.getUserId() != null ? post.getUserId().toString() : null);
+        return response;
+    }
+
     /** 招领地图点位：返回所有带经纬度的 FOUND 单据 */
     @Override
     public List<MapPostResponse> listMapPosts() {

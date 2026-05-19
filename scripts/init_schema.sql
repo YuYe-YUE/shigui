@@ -52,7 +52,7 @@ CREATE TABLE lost_found_post (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 单据图片
-CREATE TABLE post_image (
+CREATE TABLE IF NOT EXISTS post_image (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     post_id BIGINT NOT NULL,
     image_url VARCHAR(512) NOT NULL,

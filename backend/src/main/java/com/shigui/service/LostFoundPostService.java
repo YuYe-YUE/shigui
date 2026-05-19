@@ -27,4 +27,7 @@ public interface LostFoundPostService extends IService<LostFoundPost> {
 
     /** 招领地图点位（带经纬度的 FOUND 单） */
     List<MapPostResponse> listMapPosts();
+
+    /** 管理员获取单据详情，无可见性限制，含私密特征和图片 */
+    PostResponse getDetailForAdmin(Long postId);
 }
