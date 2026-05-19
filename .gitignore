@@ -1,6 +1,10 @@
 # Maven local repository
 .maven/
 
+#agent
+CLAUDE.md
+AGENTS.md
+
 # IDE
 .idea/
 *.iml
