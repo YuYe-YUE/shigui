@@ -11,8 +11,6 @@ Page({
     longitude: EAST_CAMPUS_CENTER.longitude,
     scale: 15,
     markers: [],
-    postsById: {},
-    selectedPost: null,
     loading: false
   },
 
@@ -29,41 +27,19 @@ Page({
       success: (res) => {
         if (res.data.code !== 200) {
           wx.showToast({ title: res.data.message || '地图点位加载失败', icon: 'none' })
-          this.setData({
-            markers: [],
-            postsById: {},
-            selectedPost: null
-          })
+          this.setData({ markers: [] })
           return
         }
         const posts = Array.isArray(res.data.data) ? res.data.data : []
-        const postsById = {}
         const markers = posts.map((post) => {
-          const normalizedPost = {
-            ...post,
-            displayEventTime: this.formatEventTime(post.eventTime)
-          }
-          postsById[post.id] = normalizedPost
           return {
-            id: normalizedPost.id,
-            latitude: normalizedPost.latitude,
-            longitude: normalizedPost.longitude,
+            id: post.id,
+            latitude: post.latitude,
+            longitude: post.longitude,
             width: 30,
             height: 30,
-            callout: {
-              content: [
-                normalizedPost.itemName || '招领物品',
-                `${normalizedPost.itemCategory || '其他'} · ${normalizedPost.campusArea || '未知校区'}`,
-                normalizedPost.locationName || '未知地点',
-                normalizedPost.displayEventTime
-              ].join('\n'),
-              fontSize: 12,
-              padding: 8,
-              borderRadius: 10,
-              display: 'BYCLICK'
-            },
             label: {
-              content: `${this.getCategoryLabel(normalizedPost.itemCategory)} ${normalizedPost.itemName || '招领物品'}`,
+              content: `${this.getCategoryLabel(post.itemCategory)} ${post.itemName || '招领物品'}`,
               fontSize: 11,
               color: '#00573D',
               bgColor: '#FFFFFF',
@@ -74,19 +50,11 @@ Page({
             }
           }
         })
-        this.setData({
-          markers,
-          postsById,
-          selectedPost: null
-        })
+        this.setData({ markers })
       },
       fail: () => {
         wx.showToast({ title: '网络错误', icon: 'none' })
-        this.setData({
-          markers: [],
-          postsById: {},
-          selectedPost: null
-        })
+        this.setData({ markers: [] })
       },
       complete: () => {
         this.setData({ loading: false })
@@ -98,8 +66,12 @@ Page({
   getCategoryLabel(category) {
     const map = {
       '证件': '📇',
+      '校园卡': '📇',
+      '学生证': '📇',
       '钥匙': '🔑',
+      '耳机': '🎧',
       '数码': '🎧',
+      '水杯': '🥤',
       '书籍': '📖',
       '衣物': '🧥',
       '雨伞': '🌂',
@@ -108,29 +80,11 @@ Page({
     return map[category] || '📦'
   },
 
-  // 将事件时间格式化为可读字符串
-  formatEventTime(eventTime) {
-    if (!eventTime) {
-      return '时间未知'
-    }
-    return eventTime.replace('T', ' ')
-  },
-
-  // 点击图钉时选中对应帖子，弹出气泡
+  // 点击图钉时直接跳转详情页
   onMarkerTap(e) {
     const id = e.detail.markerId
-    this.setData({ selectedPost: this.data.postsById[id] || null })
-  },
-
-  // 从弹窗跳转到帖子详情页
-  goDetail() {
-    if (this.data.selectedPost) {
-      wx.navigateTo({ url: `/pages/detail/detail?id=${this.data.selectedPost.id}` })
+    if (id) {
+      wx.navigateTo({ url: `/pages/detail/detail?id=${id}` })
     }
-  },
-
-  // 关闭弹窗
-  hidePopup() {
-    this.setData({ selectedPost: null })
   }
 })

@@ -8,6 +8,7 @@ import com.shigui.service.AdminUserService;
 import com.shigui.service.AppUserService;
 import com.shigui.service.ClaimRecordService;
 import com.shigui.service.LostFoundPostService;
+import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.MatchRecordService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +57,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private ClaimRecordService claimRecordService;
+
+    @MockitoBean
+    private PostImageMapper postImageMapper;
 
     private String getAdminToken() {
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -132,6 +136,7 @@ class AdminControllerTest {
         LostFoundPost post = new LostFoundPost();
         post.setId(1L); post.setTitle("test");
         when(lostFoundPostService.getById(1L)).thenReturn(post);
+        when(postImageMapper.selectList(any())).thenReturn(java.util.List.of());
         mockMvc.perform(get("/api/admin/posts/1").header("satoken", token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200));
     }

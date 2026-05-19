@@ -9,16 +9,17 @@ const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
 
+const detailVisible = ref(false)
+const detailPost = ref<any>(null)
+
 onMounted(() => loadPosts())
 
-// 切换标签页：重置页码并加载对应状态的单据列表。
 function switchTab(tab: string) {
   activeTab.value = tab
   page.value = 1
   loadPosts()
 }
 
-// 加载帖子列表：根据当前标签和分页参数请求后端。
 async function loadPosts() {
   loading.value = true
   try {
@@ -33,25 +34,16 @@ async function loadPosts() {
   }
 }
 
-// 查看单据详情：弹窗展示描述、私密特征、暂存地点和图片。
 async function viewDetail(id: number) {
   try {
     const res = await api.get(`/api/admin/posts/${id}`)
-    const post = res.data.data
-    const images = (post.imageUrls && post.imageUrls.length)
-      ? '\n\n图片：' + post.imageUrls.join('\n')
-      : ''
-    ElMessageBox.alert(
-      `描述：${post.description || '无'}\n\n私密特征：${post.privateFeature || '无'}\n\n暂存地点：${post.storageLocation || '无'}${images}`,
-      post.title,
-      { confirmButtonText: '关闭' }
-    )
+    detailPost.value = res.data.data
+    detailVisible.value = true
   } catch {
     /* error already shown */
   }
 }
 
-// 审核通过：确认后调审批接口，单据进入匹配池。
 async function approve(id: number) {
   try {
     await ElMessageBox.confirm('确认审核通过该单据？通过后将进入匹配池。', '审核通过', { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'success' })
@@ -61,7 +53,6 @@ async function approve(id: number) {
   } catch { /* 用户取消或接口错误 */ }
 }
 
-// 删除单据：二次确认并填写删除原因后调接口。
 async function deletePost(id: number) {
   try {
     await ElMessageBox.confirm('确认删除该单据？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
@@ -105,5 +96,23 @@ async function deletePost(id: number) {
     </el-table>
 
     <el-pagination style="margin-top:16px;justify-content:flex-end" v-model:current-page="page" :total="total" :page-size="10" @current-change="loadPosts" background layout="prev, pager, next" />
+
+    <el-dialog v-model="detailVisible" :title="detailPost?.title || '单据详情'" width="640px">
+      <template v-if="detailPost">
+        <div v-if="detailPost.imageUrls && detailPost.imageUrls.length" style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px">
+          <img v-for="(url, i) in detailPost.imageUrls" :key="i" :src="url" style="height:200px;border-radius:8px;object-fit:cover;flex-shrink:0" />
+        </div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="类型">{{ detailPost.postType === 'LOST' ? '寻物' : '招领' }}</el-descriptions-item>
+          <el-descriptions-item label="品类">{{ detailPost.itemCategory || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="物品名称">{{ detailPost.itemName || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="地点">{{ detailPost.campusArea }} {{ detailPost.locationName }}</el-descriptions-item>
+          <el-descriptions-item label="时间">{{ detailPost.eventTime || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="暂存地点">{{ detailPost.storageLocation || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="描述" :span="2">{{ detailPost.description || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="私密特征" :span="2">{{ detailPost.privateFeature || '无' }}</el-descriptions-item>
+        </el-descriptions>
+      </template>
+    </el-dialog>
   </div>
 </template>

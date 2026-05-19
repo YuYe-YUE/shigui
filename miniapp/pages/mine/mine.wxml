@@ -43,7 +43,6 @@
     <view class="menu-item" bindtap="goNotifications">
       <image class="menu-icon" src="/assets/icons/bell.svg" />
       <text class="menu-text">匹配提醒</text>
-      <view class="badge"></view>
       <image class="arrow-icon" src="/assets/icons/chevron-right.svg" />
     </view>
   </view>

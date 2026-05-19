@@ -45,6 +45,8 @@ Page({
           if (res.data.code === 200) {
             const newPosts = (res.data.data.records || []).map(p => {
               if (p.coverImageUrl) p.coverImageUrl = app.resolveImageUrl(p.coverImageUrl)
+              if (p.eventTime) p.eventTime = p.eventTime.split('T')[0]
+              if (p.publishedAt) p.publishedAt = p.publishedAt.split('T')[0]
               return p
             })
             this.setData({

@@ -32,10 +32,19 @@ class EndToEndMatchingTest {
         return body.replaceAll(".*\"data\":\"([^\"]+)\".*", "$1");
     }
 
+    private String sha256(String input) throws Exception {
+        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+        byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder();
+        for (byte b : digest) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+
     private String adminToken() throws Exception {
+        String hashed = sha256("admin123");
         String body = mockMvc.perform(post("/api/admin/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"" + hashed + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return body.replaceAll(".*\"data\":\"([^\"]+)\".*", "$1");

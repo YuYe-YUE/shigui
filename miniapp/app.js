@@ -3,7 +3,7 @@ App({
   globalData: {
     token: '',
     userInfo: null,
-    baseUrl: 'http://8.163.15.154'
+    baseUrl: 'http://127.0.0.1:8080'
   },
 
   // 启动时从本地存储恢复登录 Token

@@ -13,12 +13,16 @@ import com.shigui.service.AppUserService;
 import com.shigui.service.LostFoundPostService;
 import com.shigui.dto.AdminClaimResponse;
 import com.shigui.dto.RejectClaimRequest;
+import com.shigui.entity.PostImage;
+import com.shigui.mapper.PostImageMapper;
 import com.shigui.service.ClaimRecordService;
 import com.shigui.service.MatchRecordService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,19 +40,22 @@ public class AdminController {
     private final AppUserService appUserService;
     private final MatchRecordService matchRecordService;
     private final ClaimRecordService claimRecordService;
+    private final PostImageMapper postImageMapper;
 
     public AdminController(AdminUserService adminUserService,
                            LostFoundPostService lostFoundPostService,
                            AdminPostService adminPostService,
                            AppUserService appUserService,
                            MatchRecordService matchRecordService,
-                           ClaimRecordService claimRecordService) {
+                           ClaimRecordService claimRecordService,
+                           PostImageMapper postImageMapper) {
         this.adminUserService = adminUserService;
         this.lostFoundPostService = lostFoundPostService;
         this.adminPostService = adminPostService;
         this.appUserService = appUserService;
         this.matchRecordService = matchRecordService;
         this.claimRecordService = claimRecordService;
+        this.postImageMapper = postImageMapper;
     }
 
     private void requireAdmin() {
@@ -90,14 +97,35 @@ public class AdminController {
     }
 
     /**
-     * 获取帖子详情，包括私密特征等完整信息。
+     * 获取帖子详情，包括私密特征、图片等完整信息。
      */
     @GetMapping("/posts/{id}")
-    public Result<LostFoundPost> postDetail(@PathVariable Long id) {
+    public Result<Map<String, Object>> postDetail(@PathVariable Long id) {
         requireAdmin();
         LostFoundPost post = lostFoundPostService.getById(id);
         if (post == null) return Result.fail(404, "单据不存在");
-        return Result.ok(post);
+        List<String> imageUrls = postImageMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PostImage>()
+                        .eq(PostImage::getPostId, id)
+                        .eq(PostImage::getDeleted, 0)
+                        .orderByAsc(PostImage::getSortOrder, PostImage::getId)
+        ).stream().map(PostImage::getImageUrl).toList();
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", post.getId());
+        data.put("postType", post.getPostType());
+        data.put("title", post.getTitle());
+        data.put("itemName", post.getItemName());
+        data.put("itemCategory", post.getItemCategory());
+        data.put("description", post.getDescription());
+        data.put("privateFeature", post.getPrivateFeature());
+        data.put("campusArea", post.getCampusArea());
+        data.put("locationName", post.getLocationName());
+        data.put("storageLocation", post.getStorageLocation());
+        data.put("eventTime", post.getEventTime());
+        data.put("publishedAt", post.getPublishedAt());
+        data.put("status", post.getStatus());
+        data.put("imageUrls", imageUrls);
+        return Result.ok(data);
     }
 
     /**

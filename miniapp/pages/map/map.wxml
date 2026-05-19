@@ -10,16 +10,3 @@
 <view class="empty-map" wx:if="{{!loading && markers.length === 0}}">
   暂无已标注位置的招领单
 </view>
-
-<view class="popup-mask" wx:if="{{selectedPost}}" catchtap="hidePopup"></view>
-
-<view class="popup" wx:if="{{selectedPost}}">
-  <view class="popup-header">
-    <text class="popup-title">{{selectedPost.itemName || '招领物品'}}</text>
-    <text class="popup-type type-found">招领</text>
-  </view>
-  <view class="popup-meta">{{selectedPost.itemCategory || '其他'}} · {{selectedPost.campusArea || '未知校区'}}</view>
-  <view class="popup-location">{{selectedPost.locationName || '未知地点'}}</view>
-  <view class="popup-time">{{selectedPost.displayEventTime}}</view>
-  <button class="popup-action" bindtap="goDetail">查看详情</button>
-</view>

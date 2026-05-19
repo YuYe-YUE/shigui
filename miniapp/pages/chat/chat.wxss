@@ -2,7 +2,7 @@
 .container { display: flex; flex-direction: column; height: 100vh; }
 
 /* 消息列表 */
-.msg-list { flex: 1; padding: 14px; background: #f0f2f0; }
+.msg-list { flex: 1; padding: 14px; background: #f0f2f0; box-sizing: border-box; }
 .msg-item { margin-bottom: 14px; display: flex; }
 .msg-left { justify-content: flex-start; }
 .msg-right { justify-content: flex-end; }
@@ -14,6 +14,7 @@
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.5;
+  word-break: break-all;
 }
 .msg-left .msg-bubble {
   background: #fff;
@@ -29,10 +30,11 @@
 /* 底部输入栏 */
 .input-bar {
   display: flex;
-  padding: 10px 14px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
   background: #fff;
   border-top: 1px solid #eee;
   align-items: center;
+  box-sizing: border-box;
 }
 .chat-input {
   flex: 1;
